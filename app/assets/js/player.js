@@ -29,19 +29,59 @@ let lastCueSecond = null;
 /** The phase the last paint saw, so transitions can be detected. */
 let lastCuePhase = null;
 
+/**
+ * The gate between tapping Start and the clock running.
+ *
+ * Two jobs. It shows the first exercise so nobody is thirty seconds into a
+ * movement they have not seen yet — arriving straight into a running clock
+ * means the first interval is spent reading rather than working. And its
+ * button is a real tap inside the gesture window, which is the one reliable
+ * moment iOS Safari will let the audio context start.
+ */
 export function renderPlayer(view, routine) {
   teardown();
 
+  const { intervalSeconds } = getPrefs();
+  const first = routine.exercises[0];
+
+  document.body.classList.add('is-playing');
+
+  view.innerHTML = `
+    <div class="player player--gate">
+      <div class="player__top">
+        <span class="player__progress">${esc(routine.name)} · ${intervalSeconds}s</span>
+        <a class="player__progress" href="#/routines/${esc(routine.id)}">Back</a>
+      </div>
+
+      <div class="start-gate">
+        <p class="type-label">First up</p>
+        ${exerciseFigure(first, {
+          className: 'start-gate__figure', sizeClass: 'start-gate__figure', eager: true,
+        })}
+        <h2 class="player__name">${esc(first.name)}</h2>
+        <p class="player__next">
+          ${routine.exercises.length} exercises · ${intervalSeconds}s each
+        </p>
+        <button class="btn-omnia start-gate__go" type="button" id="go" data-quiet>
+          Start timer
+        </button>
+      </div>
+    </div>
+  `;
+
+  view.querySelector('#go').addEventListener('click', () => {
+    audio.unlock();
+    startRun(view, routine);
+  });
+}
+
+function startRun(view, routine) {
   lastCueSecond = null;
   lastCuePhase = null;
-  // Belt and braces. The real unlock happens on the Start button, inside the
-  // gesture; by the time the hashchange lands this is only a resume.
   audio.unlock();
 
   const { intervalSeconds, continuous } = getPrefs();
   const exercises = routine.exercises;
-
-  document.body.classList.add('is-playing');
 
   view.innerHTML = shell(routine, exercises, intervalSeconds, continuous);
 

@@ -17,6 +17,7 @@ import { renderPlayer, teardown } from './player.js';
 import { renderCalendar } from './calendar.js';
 import { renderBuilder } from './builder.js';
 import { getPrefs, setPrefs } from './store.js';
+import { audio } from './audio.js';
 import { esc } from './ui.js';
 
 const view = document.getElementById('view');
@@ -85,6 +86,29 @@ function fail(error) {
     <p class="type-quiet">${esc(error.message ?? String(error))}</p>
   `;
 }
+
+/* ── Click sound ──────────────────────────────────────────────────────── */
+
+/*
+  One delegated listener gives every button and link in the app a tap sound,
+  rather than wiring a cue at forty call sites and forgetting the next one.
+
+  Controls that already have a sound of their own — Start, Save, quit confirm —
+  opt out with `data-quiet`, so a tap and a cue never stack on one press.
+
+  This also doubles as the app-wide audio unlock: whatever the user touches
+  first is a genuine gesture, which is the only moment iOS Safari will let a
+  context start.
+*/
+document.addEventListener('click', (event) => {
+  const control = event.target.closest('button, a[href], [role="button"]');
+  if (!control || control.disabled) return;
+
+  audio.unlock();
+  if (!control.closest('[data-quiet]') && !control.hasAttribute('data-quiet')) {
+    audio.ui();
+  }
+}, true);   // capture, so a handler calling stopPropagation cannot silence it
 
 /* ── Theme ────────────────────────────────────────────────────────────── */
 

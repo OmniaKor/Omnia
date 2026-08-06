@@ -8,7 +8,7 @@
 
 import { estimateMinutes } from './catalog.js';
 import { completionDates, getPrefs, setPrefs } from './store.js';
-import { esc, exerciseImage, prettyDate } from './ui.js';
+import { esc, exerciseFigure, exerciseImage, prettyDate } from './ui.js';
 import { audio } from './audio.js';
 
 /* ── List ─────────────────────────────────────────────────────────────── */
@@ -76,6 +76,8 @@ export function renderPreview(view, routine) {
       </p>
     </div>
 
+    <p class="hint">Tap any exercise to see how it's done.</p>
+
     <div class="preview-layout">
       <div>
         <ol class="ex-list">
@@ -118,10 +120,18 @@ export function renderPreview(view, routine) {
 
           <p class="type-quiet" id="estimate" style="margin:0.75rem 0 1rem"></p>
 
-          <button class="btn-omnia" type="button" id="start">Start routine</button>
+          <button class="btn-omnia" type="button" id="start" data-quiet>Start routine</button>
         </div>
       </aside>
     </div>
+
+    <dialog class="sheet sheet--describe" id="describe" aria-label="Exercise description">
+      <div class="sheet__inner describe">
+        <div id="describe-body"></div>
+        <button class="btn-omnia btn-ghost" type="button" id="describe-close"
+                style="margin-top:1.25rem">Exit description</button>
+      </div>
+    </dialog>
   `;
 
   /* ── Wiring ── */
@@ -177,12 +187,14 @@ export function renderPreview(view, routine) {
   });
 
   sync();
+  wireDescriptions(view, routine);
   renderHistory(view.querySelector('#history'), routine.id);
 }
 
 function row(exercise, index) {
   return `
-    <li class="ex-row">
+    <li class="ex-row ex-row--tap" data-describe="${index}" role="button" tabindex="0"
+        aria-label="How to do ${esc(exercise.name)}">
       <span class="ex-row__num">${String(index + 1).padStart(2, '0')}</span>
       ${exerciseImage(exercise, {
         className: 'ex-row__thumb',
@@ -192,8 +204,78 @@ function row(exercise, index) {
         <span class="ex-row__name">${esc(exercise.name)}</span><br>
         <span class="ex-row__sub">${esc(exercise.level)}</span>
       </span>
+      <span class="ex-row__more" aria-hidden="true">?</span>
     </li>
   `;
+}
+
+/**
+ * The description sheet: the movement animating, its name, and how to do it.
+ *
+ * Built on `<dialog>` so the browser handles the focus trap, the backdrop and
+ * Escape. Two ways out on purpose — tapping outside is what most people try
+ * first, and an explicit button is what the rest look for.
+ */
+function wireDescriptions(view, routine) {
+  const dialog = view.querySelector('#describe');
+  const body = view.querySelector('#describe-body');
+
+  const open = (index) => {
+    const exercise = routine.exercises[index];
+    if (!exercise) return;
+
+    const steps = exercise.instructions?.length
+      ? `<ol class="describe__steps">
+           ${exercise.instructions.map((s) => `<li>${esc(s)}</li>`).join('')}
+         </ol>`
+      : '<p class="type-quiet">No description for this one yet.</p>';
+
+    body.innerHTML = `
+      ${exerciseFigure(exercise, {
+        className: 'describe__figure', sizeClass: 'describe__figure', eager: true,
+      })}
+      <h3 class="describe__name">${esc(exercise.name)}</h3>
+      <p class="type-label">${esc(exercise.level)}</p>
+      ${steps}
+    `;
+
+    audio.sheetOpen();
+    dialog.showModal();
+  };
+
+  const close = () => {
+    if (!dialog.open) return;
+    audio.sheetClose();
+    dialog.close();
+    // Free the animating frames; leaving them decoded costs memory on a phone
+    // for a sheet the user has finished with.
+    body.innerHTML = '';
+  };
+
+  view.querySelectorAll('[data-describe]').forEach((el) => {
+    el.addEventListener('click', () => open(Number(el.dataset.describe)));
+    el.addEventListener('keydown', (event) => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      open(Number(el.dataset.describe));
+    });
+  });
+
+  view.querySelector('#describe-close').addEventListener('click', close);
+
+  // Tapping the backdrop. The dialog element fills the whole viewport, so a
+  // click landing on the dialog itself rather than its panel is a click
+  // outside the visible sheet.
+  dialog.addEventListener('click', (event) => {
+    if (event.target === dialog) close();
+  });
+
+  // Escape fires `cancel`; route it through the same path so the sound and the
+  // cleanup are not skipped.
+  dialog.addEventListener('cancel', (event) => {
+    event.preventDefault();
+    close();
+  });
 }
 
 /** The small line the spec asks for: other dates this routine was completed. */

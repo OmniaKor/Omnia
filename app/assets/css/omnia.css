@@ -721,6 +721,35 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
 
 .btn-omnia[disabled] { opacity: 0.45; cursor: default; filter: none; }
 
+/* ─── 6c. Moving figures ────────────────────────────────────────────── */
+
+/* The catalog has no animated files — every movement is two JPEGs, the start
+   and the end of the rep. Alternating them is the demonstration loop.
+
+   The first frame sits in normal flow and sizes the box; the second is laid
+   over it and switched with `steps(1)`, so it cuts rather than crossfades. A
+   crossfade would read as a dissolve between two photographs; a hard cut reads
+   as movement. */
+.frames { position: relative; overflow: hidden; }
+
+.frames img {
+  width: 100%;
+  height: 100%;
+  object-fit: inherit;
+  display: block;
+}
+
+.frames__b {
+  position: absolute;
+  inset: 0;
+  animation: frame-flip 1.5s steps(1) infinite;
+}
+
+@keyframes frame-flip {
+  0%, 50%      { opacity: 0; }
+  50.01%, 100% { opacity: 1; }
+}
+
 /* ─── 7. Player ─────────────────────────────────────────────────────── */
 
 .player {

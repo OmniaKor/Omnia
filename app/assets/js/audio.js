@@ -251,6 +251,28 @@ class Audio {
     this.vibrate(55);
   }
 
+  /**
+   * A tap on anything — a button, a link, a routine card.
+   *
+   * This is the most-heard sound in the app by an order of magnitude, so it is
+   * built to disappear: 45 milliseconds, low gain, and high enough in the
+   * register to sit clear of every other cue. A UI click that is *noticeable*
+   * becomes irritating within a minute of use.
+   */
+  ui() {
+    this._note({ freq: 1180, duration: 0.045, gain: 0.055, type: 'sine' });
+  }
+
+  /** A sheet or dialog opening. Slightly softer and lower than a tap. */
+  sheetOpen() {
+    this._note({ freq: 520, duration: 0.10, gain: 0.075, type: 'sine' });
+  }
+
+  /** A sheet or dialog closing — the same gesture, inverted. */
+  sheetClose() {
+    this._note({ freq: 390, duration: 0.10, gain: 0.065, type: 'sine' });
+  }
+
   /* ── Ambient music ────────────────────────────────────────────────── */
 
   get musicEnabled() {
