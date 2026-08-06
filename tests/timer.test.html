@@ -183,7 +183,27 @@ const make = (opts = {}) => new IntervalTimer({
   t.destroy();
 }
 
-/* ── 10. Ring fraction tracks the countdown ─────────────────────────── */
+/* ── 10. The countdown never runs backwards ─────────────────────────── */
+{
+  reset();
+  const t = make();
+  t.start();
+
+  // A frame whose timestamp predates the loop's start. Real browsers deliver
+  // these when a frame was already queued as the loop began; unclamped, the
+  // negative delta pushed the countdown *up* and a 30s interval opened on 0:31.
+  const stale = [...frames.values()];
+  frames.clear();
+  for (const cb of stale) cb(now - 500);
+
+  ok('a stale frame cannot add time', t.remaining <= 30_000,
+     `remaining=${Math.round(t.remaining)}ms`);
+  ok('the clock never shows more than the interval', t.secondsLeft <= 30,
+     `secondsLeft=${t.secondsLeft}`);
+  t.destroy();
+}
+
+/* ── 11. Ring fraction tracks the countdown ─────────────────────────── */
 {
   reset();
   const t = make();

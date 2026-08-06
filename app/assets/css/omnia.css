@@ -827,10 +827,15 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
 }
 
 .player__figure { text-align: center; }
+
+/* An explicit ratio, because the two frames are stacked and the box can no
+   longer be sized by whichever image happens to load first. Without it the
+   layout jumps as the second frame arrives. */
 .player__img {
   width: 100%;
+  aspect-ratio: 4 / 3;
   max-height: 34vh;
-  object-fit: contain;
+  object-fit: cover;
   border-radius: var(--radius-box);
   background: var(--color-base-100);
 }
@@ -954,15 +959,171 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
   font-size: 2.25rem;
 }
 
-/* Confirm dialogs — quit, and marking a routine complete. */
+/* Confirm dialogs, and the description sheet.
+
+   Centred explicitly rather than left to the UA stylesheet: setting `width`
+   on a <dialog> defeats the default `margin: auto` centring in some engines
+   and the sheet drifts to the top of the viewport. `inset: 0` plus auto
+   margins pins it to the middle on both axes, everywhere. */
 .sheet {
+  position: fixed;
+  inset: 0;
+  margin: auto;
   border: none;
   padding: 0;
   background: transparent;
   max-width: 26rem;
   width: calc(100% - 2rem);
+  height: fit-content;
+  max-height: calc(100dvh - 2rem);
+  overflow: visible;
 }
 .sheet::backdrop { background: rgb(0 0 0 / 0.45); }
+
+/* The description sheet is taller — it carries a figure and the steps. */
+.sheet--describe { max-width: 30rem; }
+
+/* A column with one scrolling region, rather than one scrolling block. Some
+   movements have six steps, and with the whole sheet scrolling the "Exit
+   description" button ends up below the fold — the user has to scroll to
+   find the way out, which is exactly the wrong thing to hide. */
+.sheet--describe .sheet__inner {
+  display: flex;
+  flex-direction: column;
+  max-height: calc(100dvh - 2rem);
+  text-align: left;
+}
+.sheet--describe #describe-body {
+  flex: 1 1 auto;
+  min-height: 0;              /* without this the flex child refuses to shrink */
+  overflow-y: auto;
+}
+.sheet--describe #describe-close { flex: none; }
+
+.describe__figure {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  border-radius: var(--radius-field);
+  background: var(--color-base-200);
+}
+
+.describe__name {
+  font-family: "Noto Serif", Georgia, serif;
+  font-weight: 300;
+  font-size: 1.5rem;
+  letter-spacing: -0.01em;
+  margin: 0.85rem 0 0.2rem;
+}
+
+/* `list-style` is restated because Tailwind's preflight strips numbering from
+   every ol — without this the steps render as unnumbered paragraphs and the
+   order of a movement stops being legible. */
+.describe__steps {
+  list-style: decimal;
+  margin: 0.9rem 0 0;
+  padding-left: 1.35rem;
+  display: grid;
+  gap: 0.5rem;
+  color: var(--color-base-content);
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+.describe__steps li { padding-left: 0.2rem; }
+.describe__steps li::marker {
+  color: var(--color-accent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+}
+
+/* The tappable rows on the preview page. */
+.hint {
+  margin: -0.5rem 0 1.25rem;
+  font-size: 0.78rem;
+  color: var(--color-secondary);
+}
+
+.ex-row--tap {
+  grid-template-columns: 2rem 4.5rem 1fr 1.5rem;
+  cursor: pointer;
+  border-radius: var(--radius-field);
+}
+.ex-row--tap:hover { background: color-mix(in srgb, var(--color-base-content) 4%, transparent); }
+.ex-row__more {
+  justify-self: end;
+  width: 1.35rem; height: 1.35rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-base-content) 20%, transparent);
+  display: grid; place-items: center;
+  font-size: 0.7rem;
+  color: var(--color-secondary);
+}
+.ex-row--tap:hover .ex-row__more {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+/* ─── Start gate ───────────────────────────────────────────────────── */
+
+.player--gate { justify-content: center; }
+
+.start-gate {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  text-align: center;
+  padding: 1rem 0;
+}
+
+.start-gate__figure {
+  width: min(100%, 30rem);
+  aspect-ratio: 4 / 3;
+  max-height: 42vh;
+  object-fit: cover;
+  border-radius: var(--radius-box);
+  background: var(--color-base-100);
+}
+
+.start-gate__go {
+  width: min(100%, 20rem);
+  margin-top: 1.25rem;
+  padding: 1rem 1.5rem;
+  font-size: 1.05rem;
+}
+
+/* ─── Next up ──────────────────────────────────────────────────────── */
+
+.next-up {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  text-align: left;
+  padding: 0.35rem 0.7rem 0.35rem 0.35rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-base-content) 12%, transparent);
+  max-width: 100%;
+}
+.next-up--last {
+  padding: 0.4rem 0.9rem;
+  color: var(--color-secondary);
+}
+.next-up__thumb {
+  width: 2.75rem; height: 2.1rem;
+  object-fit: cover;
+  border-radius: var(--radius-selector);
+  flex: none;
+}
+.next-up__text {
+  font-size: 0.82rem;
+  line-height: 1.25;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.next-up__text .type-label { font-size: 0.58rem; }
 .sheet__inner {
   background: var(--color-base-100);
   border: 1px solid color-mix(in srgb, var(--color-base-content) 15%, transparent);

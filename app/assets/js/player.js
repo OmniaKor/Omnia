@@ -9,7 +9,7 @@
 
 import { IntervalTimer, BREAK_SECONDS } from './timer.js';
 import { addSession, getPrefs, setPrefs } from './store.js';
-import { announce, clockText, esc, exerciseImage } from './ui.js';
+import { announce, clockText, esc, exerciseFigure, exerciseImage } from './ui.js';
 import { audio } from './audio.js';
 
 /** Circumference of the r=44 ring in the 100×100 viewBox. */
@@ -273,13 +273,27 @@ function showExercise(els, exercises, index) {
   const exercise = exercises[index];
   const next = exercises[index + 1];
 
-  els.figure.innerHTML = exerciseImage(exercise, {
+  // The moving figure, not a still. A single frame of a sit-up does not show
+  // anyone what a sit-up is.
+  els.figure.innerHTML = exerciseFigure(exercise, {
     className: 'player__img',
     sizeClass: 'player__ph',
-    alt: exercise.name,
+    eager: true,
   });
   els.name.textContent = exercise.name;
-  els.next.textContent = next ? `Next — ${next.name}` : 'Last one';
+
+  // What is coming, with a picture. Knowing the next movement is what lets
+  // someone set up for it during the last few seconds instead of after them.
+  els.next.innerHTML = next
+    ? `<span class="next-up">
+         ${exerciseImage(next, {
+           className: 'next-up__thumb', sizeClass: 'next-up__thumb',
+         })}
+         <span class="next-up__text">
+           <span class="type-label">Next</span><br>${esc(next.name)}
+         </span>
+       </span>`
+    : '<span class="next-up next-up--last">Last one</span>';
 }
 
 /* ── Finish ───────────────────────────────────────────────────────────── */
@@ -388,7 +402,7 @@ function shell(routine, exercises, intervalSeconds, continuous) {
         </p>
         <div class="sheet__actions">
           <button class="btn-omnia btn-ghost" type="button" id="quit-cancel">Keep going</button>
-          <button class="btn-omnia" type="button" id="quit-confirm">Quit</button>
+          <button class="btn-omnia" type="button" id="quit-confirm" data-quiet>Quit</button>
         </div>
       </div>
     </dialog>

@@ -125,7 +125,14 @@ export class IntervalTimer {
     const step = (now) => {
       // Elapsed real time, not a fixed decrement: setInterval drifts, and over
       // a fifteen-interval routine the drift is visible against a wall clock.
-      const delta = now - this._last;
+      //
+      // Clamped at zero because the two clocks involved are not guaranteed to
+      // agree. `_last` is set from performance.now() when the loop starts,
+      // while `now` is the frame timestamp — and a frame already queued when
+      // the loop began carries an *earlier* timestamp. That makes the delta
+      // negative and the countdown runs backwards, which shows up as a 30s
+      // interval opening on 0:31.
+      const delta = Math.max(0, now - this._last);
       this._last = now;
       this.remaining -= delta;
 

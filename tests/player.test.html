@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="omnia">
+<head>
+<meta charset="utf-8">
+<title>Omnia — player tests</title>
+<link rel="stylesheet" href="../app/assets/css/omnia.css">
+<style>
+  body { font: 14px ui-monospace, monospace; padding: 1.5rem; }
+  .pass::before { content: "PASS  "; color: #1f6a42; }
+  .fail::before { content: "FAIL  "; color: #8f2010; }
+  .fail { color: #8f2010; }
+  #summary { margin: 1rem 0 2rem; font-weight: 600; }
+  #view { display: none; }
+</style>
+</head>
+<body>
+<h1>player &amp; figures</h1>
+<div id="out"></div>
+<div id="summary">running…</div>
+
+<div id="view"></div>
+
+<script type="module">
+/*
+  Covers the screens around the clock rather than the clock itself — the start
+  gate, the moving figure, the next-up preview — plus the two-frame animation
+  helper the rest of the app now depends on.
+
+  The fixture carries fake image URLs. Nothing is fetched: the assertions read
+  the DOM, and a 404 on a decorative <img> does not change its markup.
+*/
+
+localStorage.removeItem('omnia.v1');
+
+const results = [];
+const ok = (name, condition, detail = '') => results.push({ name, condition, detail });
+
+const { renderPlayer, teardown } = await import('../app/assets/js/player.js');
+const { exerciseFigure } = await import('../app/assets/js/ui.js');
+
+const two = (id, name) => ({
+  id, name, level: 'beginner', primary: ['abs'], placeholder: false,
+  images: [`/fake/${id}/0.jpg`, `/fake/${id}/1.jpg`],
+  instructions: [`Do ${name}.`, 'Breathe.'],
+});
+
+const routine = {
+  id: 'routine-t', name: 'Routine #T', focus: 'Test', custom: false,
+  exercises: [two('A', 'Crunches'), two('B', 'Plank'), two('C', 'Side Bridge')],
+  duration: { low: 5, high: 5 },
+};
+
+const view = document.getElementById('view');
+const $ = (sel) => view.querySelector(sel);
+
+/* ── The figure helper ──────────────────────────────────────────────── */
+
+/* The catalog has no animated files — two JPEGs per movement, start and end.
+   Alternating them IS the animation, so the second frame must be present. */
+{
+  const html = exerciseFigure(routine.exercises[0], { className: 'x', sizeClass: 'y' });
+  ok('a two-frame exercise renders both frames',
+     html.includes('frames__a') && html.includes('frames__b'));
+  ok('both frame sources are used',
+     html.includes('/fake/A/0.jpg') && html.includes('/fake/A/1.jpg'));
+
+  const single = exerciseFigure(
+    { ...routine.exercises[0], images: ['/fake/A/0.jpg'] }, { className: 'x', sizeClass: 'y' },
+  );
+  /* Flashing one photograph on and off is not an animation. */
+  ok('a one-frame exercise renders still', !single.includes('frames__b'));
+
+  const placeholder = exerciseFigure(
+    { ...routine.exercises[0], placeholder: true, images: [] }, { className: 'x', sizeClass: 'y' },
+  );
+  ok('a placeholder renders the drawn card', placeholder.includes('[placeholder]'));
+
+  ok('eager preloads both frames',
+     exerciseFigure(routine.exercises[0], { className: 'x', sizeClass: 'y', eager: true })
+       .includes('loading="eager"'));
+}
+
+/* ── Start gate ─────────────────────────────────────────────────────── */
+
+renderPlayer(view, routine);
+
+ok('opens on the start gate, not a running clock', $('.player--gate') !== null);
+ok('no clock before starting', $('#clock-time') === null);
+ok('shows the first exercise', $('.player__name').textContent === 'Crunches');
+ok('the first exercise is animated', $('.start-gate .frames__b') !== null);
+ok('offers a start button', $('#go') !== null);
+/* Start carries its own cue, so it opts out of the global tap sound. */
+ok('start opts out of the generic click sound', $('#go').hasAttribute('data-quiet'));
+ok('the masthead is hidden during a workout',
+   document.body.classList.contains('is-playing'));
+
+/* ── Running ────────────────────────────────────────────────────────── */
+
+$('#go').click();
+
+ok('starting swaps in the clock', $('#clock-time') !== null);
+ok('the clock starts at the chosen interval', $('#clock-time').textContent === '0:30',
+   $('#clock-time').textContent);
+ok('progress starts at one of three', $('#progress').textContent.trim() === '01 / 03',
+   $('#progress').textContent);
+
+ok('the current exercise is animated, not still', $('#figure .frames__b') !== null);
+ok('the current exercise is named', $('#ex-name').textContent === 'Crunches');
+
+/* ── Next up ────────────────────────────────────────────────────────── */
+
+ok('next up shows a thumbnail', $('#ex-next .next-up__thumb') !== null);
+ok('next up names the coming exercise', /Plank/.test($('#ex-next').textContent),
+   $('#ex-next').textContent.trim());
+/* The next-up preview is a still on purpose — a second animation beside the
+   clock competes with the exercise the user is meant to be copying. */
+ok('next up is a still, not a second animation', $('#ex-next .frames__b') === null);
+
+/* ── Controls ───────────────────────────────────────────────────────── */
+
+ok('break and quit are present', $('#break') !== null && $('#quit') !== null);
+ok('mute is reachable without leaving the workout', $('#mute') !== null);
+ok('quit asks before it acts', $('#quit-dialog') !== null);
+ok('the quit dialog is centred', (() => {
+  $('#quit').click();
+  const style = getComputedStyle($('#quit-dialog'));
+  const centred = style.position === 'fixed' &&
+    style.marginLeft === 'auto' && style.marginTop === 'auto';
+  $('#quit-dialog').close();
+  return centred;
+})(), 'expected position:fixed with auto margins');
+
+ok('quit confirm opts out of the generic click sound',
+   $('#quit-confirm').hasAttribute('data-quiet'));
+
+/* ── Teardown ───────────────────────────────────────────────────────── */
+
+teardown();
+ok('leaving the player restores the masthead',
+   document.body.classList.contains('is-playing') === false);
+
+/* ── Report ─────────────────────────────────────────────────────────── */
+
+localStorage.removeItem('omnia.v1');
+
+document.getElementById('out').innerHTML = results
+  .map((r) => `<div class="${r.condition ? 'pass' : 'fail'}">${r.name}${
+    r.condition ? '' : ` — got ${r.detail}`}</div>`)
+  .join('');
+
+const failed = results.filter((r) => !r.condition).length;
+document.getElementById('summary').textContent =
+  failed === 0 ? `ALL PASS — ${results.length} assertions`
+               : `${failed} FAILED of ${results.length}`;
+</script>
+</body>
+</html>
