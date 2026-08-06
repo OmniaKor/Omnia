@@ -10,14 +10,29 @@
 import { IntervalTimer, BREAK_SECONDS } from './timer.js';
 import { addSession, getPrefs, setPrefs } from './store.js';
 import { announce, clockText, esc, exerciseImage } from './ui.js';
+import { audio } from './audio.js';
 
 /** Circumference of the r=44 ring in the 100×100 viewBox. */
 const RING = 2 * Math.PI * 44;
 
 let active = null;
 
+/**
+ * The last whole second a cue fired on.
+ *
+ * paint() runs every animation frame — sixty times a second — so cues have to
+ * be gated on the second *changing*, not on its value. Without this the last
+ * three seconds would fire roughly 180 beeps.
+ */
+let lastCueSecond = null;
+
 export function renderPlayer(view, routine) {
   teardown();
+
+  lastCueSecond = null;
+  // Belt and braces. The real unlock happens on the Start button, inside the
+  // gesture; by the time the hashchange lands this is only a resume.
+  audio.unlock();
 
   const { intervalSeconds, continuous } = getPrefs();
   const exercises = routine.exercises;
@@ -110,6 +125,8 @@ export function renderPlayer(view, routine) {
 function paint(els, snapshot, exercises) {
   els.time.textContent = clockText(snapshot.secondsLeft);
 
+  cueSecond(snapshot);
+
   // Deplete the ring as time runs out.
   els.arc.style.strokeDashoffset = String(RING * snapshot.fraction);
 
@@ -133,6 +150,23 @@ function paint(els, snapshot, exercises) {
 
   const done = snapshot.index + (snapshot.phase === 'finished' ? 1 : snapshot.fraction);
   els.bar.style.width = `${(done / exercises.length) * 100}%`;
+}
+
+/**
+ * Fire the per-second cues, once each.
+ *
+ * The countdown ticks match the red digits exactly — they are the same signal
+ * in a second channel, for the moment when the phone is face-down on the floor
+ * or the user is mid-plank looking at the ceiling.
+ */
+function cueSecond(snapshot) {
+  const second = snapshot.secondsLeft;
+  if (second === lastCueSecond) return;
+  lastCueSecond = second;
+
+  if (snapshot.phase === 'running' && second <= 3 && second >= 1) {
+    audio.tick(second);
+  }
 }
 
 function showExercise(els, exercises, index) {

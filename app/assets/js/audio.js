@@ -127,6 +127,26 @@ class Audio {
     } catch { /* silence beats an exception */ }
   }
 
+  /* ── Cues ─────────────────────────────────────────────────────────── */
+
+  /**
+   * The last three seconds of an interval, one per second.
+   *
+   * Pitch rises across the three so the ear knows *which* tick it just heard
+   * without counting — 3 and 1 are different notes, not the same beep repeated.
+   * Deliberately shorter and quieter than the tone that follows them, so the
+   * countdown reads as approach and the interval end reads as arrival.
+   *
+   * @param {number} secondsLeft 3, 2 or 1
+   */
+  tick(secondsLeft) {
+    const pitch = { 3: 660, 2: 740, 1: 830 }[secondsLeft];
+    if (!pitch) return;
+
+    this._note({ freq: pitch, duration: 0.09, gain: 0.13, type: 'triangle' });
+    this.vibrate(12);
+  }
+
   /* ── Haptics ──────────────────────────────────────────────────────── */
 
   /**

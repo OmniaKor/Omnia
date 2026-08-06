@@ -9,6 +9,7 @@
 import { estimateMinutes } from './catalog.js';
 import { completionDates, getPrefs, setPrefs } from './store.js';
 import { esc, exerciseImage, prettyDate } from './ui.js';
+import { audio } from './audio.js';
 
 /* ── List ─────────────────────────────────────────────────────────────── */
 
@@ -131,6 +132,9 @@ export function renderPreview(view, routine) {
   });
 
   view.querySelector('#start').addEventListener('click', () => {
+    // The one reliable moment to start audio: a real tap, before any
+    // navigation. iOS Safari will not create a context anywhere else.
+    audio.unlock();
     location.hash = `#/play/${routine.id}`;
   });
 
