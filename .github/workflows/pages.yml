@@ -43,13 +43,11 @@ jobs:
       - name: Configure Pages
         uses: actions/configure-pages@v5
         with:
-          # Claims the Pages site for Actions (build_type: workflow).
-          #
-          # Without this, a repository whose Pages source is still "Deploy from
-          # a branch" runs *two* pipelines on every push: the legacy Jekyll
-          # builder and this one. They race for the same environment — the
-          # Jekyll build fails (there is no Jekyll site here) and this deploy
-          # hangs waiting for an environment it does not own.
+          # Enables Pages with build_type: workflow *if it is not enabled at
+          # all*. Tried and measured: it does NOT convert a site whose source
+          # is already "Deploy from a branch" — the step passes, and Deploy
+          # still hangs. Kept only so a fresh clone of this repo deploys
+          # without a manual step.
           enablement: true
 
       - name: Upload app/
