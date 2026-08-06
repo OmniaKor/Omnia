@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omnia — audio tests</title>
+<style>
+  body { font: 14px ui-monospace, monospace; padding: 1.5rem; line-height: 1.7; }
+  .pass::before { content: "PASS  "; color: #1f6a42; }
+  .fail::before { content: "FAIL  "; color: #8f2010; }
+  .fail { color: #8f2010; }
+  h1 { font: 600 16px ui-monospace, monospace; }
+  #summary { margin-top: 1rem; font-weight: 600; }
+  button { font: inherit; padding: 0.5rem 1rem; margin: 0.25rem 0.25rem 0.25rem 0; }
+  #manual { margin-top: 2rem; padding-top: 1rem; border-top: 1px solid #ccc; }
+</style>
+</head>
+<body>
+<h1>audio</h1>
+<div id="out"></div>
+<div id="summary">running…</div>
+
+<div id="manual">
+  <p><strong>Listen to them.</strong> Automated checks cannot tell a pleasant
+  cue from an unpleasant one — click through and use your ears.</p>
+  <div id="buttons"></div>
+</div>
+
+<script type="module">
+/*
+  What is worth asserting about audio is its *contract*, not its sound: that
+  nothing throws when the Web Audio API is missing or blocked, that mute is
+  honoured, that the ambient bed is not started twice, and that preferences
+  round-trip. Whether the completion chime is nice is a question for ears,
+  so this page also exposes every cue as a button.
+*/
+
+localStorage.removeItem('omnia.v1');
+
+const results = [];
+const ok = (name, condition, detail = '') => results.push({ name, condition, detail });
+
+const { audio } = await import('../app/assets/js/audio.js');
+const store = await import('../app/assets/js/store.js');
+
+/* ── Degrades safely ────────────────────────────────────────────────── */
+
+/* The single most important property: a browser with no Web Audio, or one
+   refusing to start it, must cost the user silence and nothing else. */
+{
+  const RealCtx = window.AudioContext;
+  const RealWebkit = window.webkitAudioContext;
+  delete window.AudioContext;
+  delete window.webkitAudioContext;
+
+  const stripped = Object.create(Object.getPrototypeOf(audio));
+  stripped.ctx = null; stripped.master = null; stripped.ready = false; stripped.ambient = null;
+
+  let threw = null;
+  try {
+    stripped.unlock();
+    stripped.tick(3); stripped.advance(); stripped.gate();
+    stripped.breakStart(); stripped.breakEnd();
+    stripped.finish(); stripped.quit();
+    stripped.startAmbient(); stripped.stopAmbient();
+    stripped.vibrate(10);
+  } catch (error) {
+    threw = error;
+  }
+
+  ok('every cue is safe with no AudioContext', threw === null, String(threw));
+  ok('unlock reports failure rather than throwing', stripped.ready === false);
+
+  if (RealCtx) window.AudioContext = RealCtx;
+  if (RealWebkit) window.webkitAudioContext = RealWebkit;
+}
+
+/* ── Unlock ─────────────────────────────────────────────────────────── */
+
+const unlocked = audio.unlock();
+ok('unlock creates a context', unlocked === true && audio.ready === true);
+ok('unlock is idempotent', audio.unlock() === true && audio.ctx !== null);
+
+/* ── Mute ───────────────────────────────────────────────────────────── */
+
+{
+  audio.setMuted(false);
+  ok('starts unmuted', audio.muted === false);
+
+  const nowMuted = audio.toggleMuted();
+  ok('toggleMuted returns the new state', nowMuted === true && audio.muted === true);
+  ok('mute persists to prefs', store.getPrefs().soundMuted === true);
+
+  audio.setMuted(false);
+  ok('unmute persists', store.getPrefs().soundMuted === false);
+}
+
+/* ── Cues do not throw while live ───────────────────────────────────── */
+
+{
+  let threw = null;
+  try {
+    audio.tick(3); audio.tick(2); audio.tick(1);
+    audio.tick(9);                       // out of range — must be ignored
+    audio.advance(); audio.gate();
+    audio.breakStart(); audio.breakEnd();
+    audio.finish(); audio.quit();
+  } catch (error) { threw = error; }
+  ok('all cues run against a live context', threw === null, String(threw));
+}
+
+/* ── Ambient ────────────────────────────────────────────────────────── */
+
+{
+  audio.setMuted(false);
+  store.setPrefs({ musicEnabled: true });
+
+  audio.startAmbient();
+  ok('startAmbient builds the graph', audio.ambient !== null);
+
+  const first = audio.ambient;
+  audio.startAmbient();
+  /* Starting twice would stack a second pad on the first, doubling the volume
+     and leaking the original's oscillators for the rest of the session. */
+  ok('startAmbient is idempotent', audio.ambient === first);
+
+  audio.stopAmbient();
+  ok('stopAmbient clears the graph', audio.ambient === null);
+  ok('stopAmbient is safe when idle', (() => {
+    try { audio.stopAmbient(); return true; } catch { return false; }
+  })());
+
+  store.setPrefs({ musicEnabled: false });
+  audio.startAmbient();
+  ok('music disabled means no ambient', audio.ambient === null);
+  store.setPrefs({ musicEnabled: true });
+}
+
+/* ── Preferences round-trip ─────────────────────────────────────────── */
+
+{
+  audio.setMusic(false);
+  ok('setMusic persists off', store.getPrefs().musicEnabled === false && audio.musicEnabled === false);
+  audio.setMusic(true);
+  ok('setMusic persists on', store.getPrefs().musicEnabled === true && audio.musicEnabled === true);
+  audio.stopAmbient();
+}
+
+/* ── Haptics ────────────────────────────────────────────────────────── */
+
+{
+  const real = navigator.vibrate;
+  let called = null;
+  Object.defineProperty(navigator, 'vibrate', {
+    value: (p) => { called = p; return true; }, configurable: true,
+  });
+
+  audio.setMuted(false);
+  audio.vibrate(30);
+  ok('vibrate fires when unmuted', called === 30, String(called));
+
+  called = null;
+  audio.setMuted(true);
+  audio.vibrate(30);
+  /* Someone who silenced the app in a quiet room did not ask for a buzzing
+     phone on the floor beside them. */
+  ok('vibrate is suppressed when muted', called === null, String(called));
+  audio.setMuted(false);
+
+  if (real) Object.defineProperty(navigator, 'vibrate', { value: real, configurable: true });
+  else delete navigator.vibrate;
+}
+
+/* ── Report ─────────────────────────────────────────────────────────── */
+
+localStorage.removeItem('omnia.v1');
+
+document.getElementById('out').innerHTML = results
+  .map((r) => `<div class="${r.condition ? 'pass' : 'fail'}">${r.name}${
+    r.condition ? '' : ` — ${r.detail}`}</div>`)
+  .join('');
+
+const failed = results.filter((r) => !r.condition).length;
+document.getElementById('summary').textContent =
+  failed === 0 ? `ALL PASS — ${results.length} assertions`
+               : `${failed} FAILED of ${results.length}`;
+
+/* ── Ears ───────────────────────────────────────────────────────────── */
+
+const cues = ['tick', 'advance', 'gate', 'breakStart', 'breakEnd', 'finish', 'quit'];
+const buttons = document.getElementById('buttons');
+
+for (const cue of cues) {
+  const button = document.createElement('button');
+  button.textContent = cue;
+  button.onclick = () => {
+    audio.unlock();
+    audio.setMuted(false);
+    cue === 'tick' ? [3, 2, 1].forEach((n, i) => setTimeout(() => audio.tick(n), i * 1000))
+                   : audio[cue]();
+  };
+  buttons.append(button);
+}
+
+for (const [label, fn] of [
+  ['▶ ambient', () => { audio.unlock(); audio.setMuted(false); audio.startAmbient(); }],
+  ['■ ambient', () => audio.stopAmbient()],
+]) {
+  const button = document.createElement('button');
+  button.textContent = label;
+  button.onclick = fn;
+  buttons.append(button);
+}
+</script>
+</body>
+</html>
