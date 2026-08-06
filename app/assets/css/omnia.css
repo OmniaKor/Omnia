@@ -566,6 +566,27 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
   color: var(--color-secondary);
 }
 
+.player__top-right { display: flex; align-items: center; gap: 0.6rem; }
+
+/* Small round control — mute in the player, and the same shape elsewhere. */
+.icon-btn {
+  width: 44px; height: 44px;
+  display: grid; place-items: center;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-base-content) 18%, transparent);
+  background: none;
+  color: var(--color-secondary);
+  cursor: pointer;
+  font-size: 0.95rem;
+  line-height: 1;
+  transition: color 0.15s, border-color 0.15s;
+}
+.icon-btn:hover { color: var(--color-accent); border-color: var(--color-accent); }
+.icon-btn.is-off {
+  color: var(--color-accent);
+  border-color: var(--color-accent);
+}
+
 .player__bar {
   height: 2px;
   background: color-mix(in srgb, var(--color-base-content) 12%, transparent);

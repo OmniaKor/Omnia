@@ -94,6 +94,18 @@ export function renderPreview(view, routine) {
                    ${prefs.continuous ? 'checked' : ''}>
           </div>
 
+          <div class="opt-row">
+            <label class="type-label" for="music">Music</label>
+            <input type="checkbox" id="music" class="toggle"
+                   ${prefs.musicEnabled !== false ? 'checked' : ''}>
+          </div>
+
+          <div class="opt-row">
+            <label class="type-label" for="sound">Sound</label>
+            <input type="checkbox" id="sound" class="toggle"
+                   ${prefs.soundMuted ? '' : 'checked'}>
+          </div>
+
           <p class="type-quiet" id="estimate" style="margin:0.75rem 0 1rem"></p>
 
           <button class="btn-omnia" type="button" id="start">Start routine</button>
@@ -129,6 +141,22 @@ export function renderPreview(view, routine) {
   view.querySelector('#continuous').addEventListener('change', (event) => {
     setPrefs({ continuous: event.target.checked });
     sync();
+  });
+
+  view.querySelector('#music').addEventListener('change', (event) => {
+    // A toggle is a gesture, so this doubles as a chance to unlock audio.
+    audio.unlock();
+    audio.setMusic(event.target.checked);
+    // Nothing is playing outside the player, so stop whatever setMusic started.
+    audio.stopAmbient();
+  });
+
+  view.querySelector('#sound').addEventListener('change', (event) => {
+    audio.unlock();
+    audio.setMuted(!event.target.checked);
+    // Confirm the change in the medium being changed — silence is otherwise
+    // indistinguishable from a broken toggle.
+    if (event.target.checked) audio.tick(2);
   });
 
   view.querySelector('#start').addEventListener('click', () => {

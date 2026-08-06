@@ -28,6 +28,9 @@ class Audio {
     this.ctx = null;
     this.master = null;
     this.ready = false;
+
+    /** Live ambient nodes, or null when nothing is playing. */
+    this.ambient = null;
   }
 
   /* ── Lifecycle ────────────────────────────────────────────────────── */
@@ -246,6 +249,138 @@ class Audio {
     this._note({ freq: 293.66, duration: 0.18, gain: 0.13, type: 'sine' });
     this._note({ freq: 220.00, duration: 0.42, gain: 0.12, type: 'sine', delay: 0.13 });
     this.vibrate(55);
+  }
+
+  /* ── Ambient music ────────────────────────────────────────────────── */
+
+  get musicEnabled() {
+    return getPrefs().musicEnabled !== false;
+  }
+
+  setMusic(enabled) {
+    setPrefs({ musicEnabled: Boolean(enabled) });
+    if (enabled) this.startAmbient();
+    else this.stopAmbient();
+  }
+
+  /**
+   * Start the ambient bed: a slow A-minor pad with an occasional shimmer.
+   *
+   * Synthesised rather than streamed, like everything else here — an mp3 loop
+   * long enough not to feel repetitive would be several megabytes, would need
+   * a licence, and would not play offline until it had been fetched once.
+   *
+   * Three things stop it becoming a drone:
+   *
+   *   · each voice is detuned a few cents against the others, so they beat
+   *     slowly against each other instead of sitting still
+   *   · a lowpass filter sweeps on a very slow LFO, which is what makes it
+   *     read as breathing rather than humming
+   *   · sparse pentatonic shimmer notes at irregular intervals
+   *
+   * Mixed far below the cues. If someone notices the music while counting
+   * down from three, it is too loud.
+   */
+  startAmbient() {
+    if (!this.ready || this.ambient || !this.musicEnabled) return;
+
+    try {
+      const ctx = this.ctx;
+      const now = ctx.currentTime;
+
+      const bus = ctx.createGain();
+      bus.gain.setValueAtTime(0.0001, now);
+      // A four-second fade-in. Music that arrives abruptly at the start of a
+      // workout is startling; this just appears.
+      bus.gain.exponentialRampToValueAtTime(0.075, now + 4);
+
+      const filter = ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.value = 700;
+      filter.Q.value = 0.6;
+
+      // The slow sweep. 0.025 Hz is one cycle every forty seconds — below the
+      // rate at which a listener tracks it as a repeating pattern.
+      const lfo = ctx.createOscillator();
+      const lfoDepth = ctx.createGain();
+      lfo.frequency.value = 0.025;
+      lfoDepth.gain.value = 320;
+      lfo.connect(lfoDepth);
+      lfoDepth.connect(filter.frequency);
+      lfo.start(now);
+
+      // A minor, voiced low and open: A2 · E3 · A3 · C4.
+      const voices = [
+        { freq: 110.00, detune: -4, gain: 0.55 },
+        { freq: 164.81, detune: +3, gain: 0.34 },
+        { freq: 220.00, detune: -2, gain: 0.28 },
+        { freq: 261.63, detune: +5, gain: 0.20 },
+      ].map(({ freq, detune, gain }) => {
+        const osc = ctx.createOscillator();
+        const level = ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.value = freq;
+        osc.detune.value = detune;
+        level.gain.value = gain;
+        osc.connect(level);
+        level.connect(filter);
+        osc.start(now);
+        return osc;
+      });
+
+      filter.connect(bus);
+      bus.connect(this.master);
+
+      this.ambient = { bus, filter, lfo, voices, shimmer: null };
+      this._scheduleShimmer();
+    } catch {
+      this.ambient = null;
+    }
+  }
+
+  /**
+   * One quiet bell note, then schedule the next at an irregular interval.
+   *
+   * Irregular on purpose: evenly spaced notes become a metronome, and a
+   * metronome competing with a countdown is the opposite of what this is for.
+   */
+  _scheduleShimmer() {
+    if (!this.ambient) return;
+
+    const delay = 7000 + Math.random() * 11000;
+    this.ambient.shimmer = setTimeout(() => {
+      if (!this.ambient) return;
+      // A minor pentatonic, two octaves up — sits above the pad without
+      // crossing into the register the cues occupy.
+      const scale = [440.00, 523.25, 587.33, 659.25, 783.99];
+      const freq = scale[Math.floor(Math.random() * scale.length)];
+      this._note({ freq, duration: 2.6, gain: 0.035, type: 'sine' });
+      this._scheduleShimmer();
+    }, delay);
+  }
+
+  /** Fade out and tear down. Safe when nothing is playing. */
+  stopAmbient() {
+    const ambient = this.ambient;
+    if (!ambient) return;
+    this.ambient = null;
+
+    try {
+      clearTimeout(ambient.shimmer);
+
+      const now = this.ctx.currentTime;
+      ambient.bus.gain.cancelScheduledValues(now);
+      ambient.bus.gain.setValueAtTime(Math.max(ambient.bus.gain.value, 0.0001), now);
+      ambient.bus.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
+
+      // Stop the sources only after the fade, or the fade is inaudible.
+      const stopAt = now + 1.3;
+      ambient.lfo.stop(stopAt);
+      for (const osc of ambient.voices) osc.stop(stopAt);
+      ambient.lfo.onended = () => {
+        try { ambient.bus.disconnect(); ambient.filter.disconnect(); } catch { /* gone */ }
+      };
+    } catch { /* context already torn down */ }
   }
 
   /* ── Haptics ──────────────────────────────────────────────────────── */

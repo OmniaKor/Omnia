@@ -60,6 +60,8 @@ export function renderPlayer(view, routine) {
     quitBtn: view.querySelector('#quit'),
     continuous: view.querySelector('#continuous-live'),
     quitDialog: view.querySelector('#quit-dialog'),
+    mute: view.querySelector('#mute'),
+    muteGlyph: view.querySelector('#mute-glyph'),
   };
 
   const startedAt = new Date().toISOString();
@@ -83,6 +85,7 @@ export function renderPlayer(view, routine) {
   paint(els, timer.snapshot(), exercises);
   timer.start();
   requestWakeLock();
+  audio.startAmbient();
 
   /* ── Controls ── */
 
@@ -103,6 +106,27 @@ export function renderPlayer(view, routine) {
     timer.continuous = event.target.checked;
     setPrefs({ continuous: event.target.checked });
   });
+
+  // One tap to silence everything, for the 6am-in-a-shared-room case. Kept in
+  // the top bar rather than a settings screen precisely because the moment
+  // someone needs it, they need it immediately.
+  const paintMute = () => {
+    const muted = audio.muted;
+    els.mute.setAttribute('aria-pressed', String(muted));
+    els.mute.setAttribute('aria-label', muted ? 'Unmute' : 'Mute all sound');
+    els.muteGlyph.textContent = muted ? '✕' : '♪';
+    els.mute.classList.toggle('is-off', muted);
+  };
+
+  els.mute.addEventListener('click', () => {
+    audio.unlock();               // first tap may also be the unlocking gesture
+    const muted = audio.toggleMuted();
+    if (muted) audio.stopAmbient();
+    else audio.startAmbient();
+    paintMute();
+  });
+
+  paintMute();
 
   // Quitting always asks first. Only a confirmed quit ends the routine.
   els.quitBtn.addEventListener('click', () => els.quitDialog.showModal());
@@ -269,7 +293,11 @@ function shell(routine, exercises, intervalSeconds, continuous) {
     <div class="player">
       <div class="player__top">
         <span class="player__progress" id="progress">01 / ${exercises.length}</span>
-        <span class="player__progress">${esc(routine.name)} · ${intervalSeconds}s</span>
+        <span class="player__top-right">
+          <span class="player__progress">${esc(routine.name)} · ${intervalSeconds}s</span>
+          <button class="icon-btn" type="button" id="mute" aria-pressed="false"
+                  aria-label="Mute all sound"><span id="mute-glyph">♪</span></button>
+        </span>
       </div>
       <div class="player__bar"><span id="bar" style="width:0%"></span></div>
 
@@ -352,8 +380,13 @@ function releaseWakeLock() {
 }
 
 // Re-acquire after the user switches away and back; the lock is dropped on hide.
+// Browsers also suspend the audio context on hide, so the cues need waking too —
+// without this, coming back from a notification leaves the rest of the routine
+// silent with no sign why.
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible' && active && !wakeLock) requestWakeLock();
+  if (document.visibilityState !== 'visible' || !active) return;
+  if (!wakeLock) requestWakeLock();
+  audio.unlock();
 });
 
 /* ── Teardown ─────────────────────────────────────────────────────────── */
@@ -365,5 +398,8 @@ export function teardown() {
     active = null;
   }
   releaseWakeLock();
+  // The music belongs to the workout, not the app. Leaving the player — by
+  // quitting, finishing, or the browser Back button — stops it.
+  audio.stopAmbient();
   document.body.classList.remove('is-playing');
 }
