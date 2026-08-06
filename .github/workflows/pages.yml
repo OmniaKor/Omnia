@@ -1,0 +1,49 @@
+# Publishes app/ to GitHub Pages.
+#
+# Branch-based Pages can only serve the repository root or a folder literally
+# named `docs`, so serving `app/` requires this workflow. It uploads the folder
+# as-is — there is no build step, and adding one is not the reason this file
+# exists.
+#
+# Requires: Settings → Pages → Source = "GitHub Actions" (one time).
+
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:      # lets you redeploy from the Actions tab without a commit
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write         # deploy-pages authenticates with OIDC, not a token
+
+# Never let two deploys race. `cancel-in-progress: false` so a queued deploy
+# finishes rather than being dropped — a cancelled deploy leaves the live site
+# on the previous commit with no obvious sign why.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload app/
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: app
+
+      - name: Deploy
+        id: deployment
+        uses: actions/deploy-pages@v4

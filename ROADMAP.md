@@ -53,7 +53,11 @@ and survives refreshes but not a new phone. Phase 9 is what fixes that.
 Get a real, mobile-correct page onto GitHub Pages before any feature exists, so
 every later phase deploys by reflex instead of by project.
 
-- [x] `docs/` as the Pages publishing root (Settings → Pages → `main` / `/docs`)
+- [x] `app/` published to Pages by `.github/workflows/pages.yml`. Branch-based
+      Pages can only serve the repo root or a folder literally named `docs`, so
+      a workflow is what buys the honest folder name. It uploads `app/`
+      verbatim — there is still no build step.
+      (Settings → Pages → Source → GitHub Actions)
 - [x] `.nojekyll` so Jekyll never touches the assets
 - [x] Tailwind 4 + DaisyUI 5 loaded from jsDelivr — **buildless**, so a `git push`
       deploys. No Node, no CI, nothing for a teammate to install.
@@ -67,7 +71,7 @@ every later phase deploys by reflex instead of by project.
 ## Phase 1 — Exercise catalog ✅
 
 - [x] `tools/build_catalog.py` pulls `free-exercise-db` at a **pinned commit** and
-      writes `docs/assets/data/exercises.json`
+      writes `app/assets/data/exercises.json`
 - [x] Curated to floor-based, **no-equipment** core work — bench / ball / pull-up-bar
       movements filtered out even when tagged "body only"
 - [x] Images from jsDelivr, pinned to the same commit

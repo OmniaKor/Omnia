@@ -51,7 +51,7 @@ const results = [];
 const ok = (name, condition, detail = '') => results.push({ name, condition, detail });
 const near = (actual, expected, tol = 120) => Math.abs(actual - expected) <= tol;
 
-const { IntervalTimer, BREAK_SECONDS, URGENT_SECONDS } = await import('../docs/assets/js/timer.js');
+const { IntervalTimer, BREAK_SECONDS, URGENT_SECONDS } = await import('../app/assets/js/timer.js');
 
 const make = (opts = {}) => new IntervalTimer({
   intervalSeconds: 30, count: 3, continuous: true,

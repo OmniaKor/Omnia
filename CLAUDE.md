@@ -29,7 +29,7 @@ If a change needs a server to answer a request, it cannot ship on Pages. So:
 - **Later, optional:** Flask (Phase 8, self-host only), Supabase (Phase 9, called
   from the browser — so Pages stays sufficient)
 
-**Do not add a runtime Python dependency to `docs/`.** It will 404 on Pages.
+**Do not add a runtime Python dependency to `app/`.** It will 404 on Pages.
 
 ## Buildless on purpose
 
@@ -51,13 +51,14 @@ but do not do it just because it is more correct.
 Omnia/
 ├── CLAUDE.md, ROADMAP.md, README.md
 ├── requirements.txt              # build-time only (requests)
+├── .github/workflows/pages.yml   # uploads app/ to Pages; compiles nothing
 ├── tools/
 │   └── build_catalog.py          # regenerates the exercise catalog
 ├── tests/                        # open in a browser over http; not published
 │   ├── timer.test.html           # the interval rules
 │   └── store.test.html           # the calendar colour rules
-└── docs/                         # ← GitHub Pages publishing root
-    ├── .nojekyll                 # required: keeps Jekyll off the assets
+└── app/                          # ← what GitHub Pages serves
+    ├── .nojekyll                 # belt and braces; see Gotchas
     ├── index.html                # the whole app — one page, hash-routed
     ├── manifest.webmanifest
     ├── sw.js                     # service worker (offline)
@@ -221,20 +222,20 @@ copy rather than a translation.
 
 **Run locally** — any static server; there is no build.
 ```bash
-python -m http.server 8000 --directory docs
+python -m http.server 8000 --directory app
 # → http://localhost:8000
 ```
 
 **Regenerate the exercise catalog** (only after editing the curation lists or the pin):
 ```bash
 pip install -r requirements.txt
-python tools/build_catalog.py          # writes docs/assets/data/exercises.json
+python tools/build_catalog.py          # writes app/assets/data/exercises.json
 ```
 
-**Add a routine** — edit `docs/assets/data/routines.json`. Exercise ids must exist in
+**Add a routine** — edit `app/assets/data/routines.json`. Exercise ids must exist in
 `exercises.json`; the build script prints every valid id with `--list`.
 
-**Run the tests** — serve the *repository root* (not `docs/`) and open the pages.
+**Run the tests** — serve the *repository root* (not `app/`) and open the pages.
 They are plain HTML with no runner and no dependencies; each prints PASS/FAIL and a
 summary line.
 ```bash
@@ -247,14 +248,22 @@ queue by hand, so every assertion is exact. Both suites cover product rules rath
 than implementation details — if a rule in "Rules the UI must keep" changes, the
 test changes with it, deliberately.
 
-**Deploy** — push to `main`. Pages serves `/docs`. Nothing else happens.
+**Deploy** — push to `main`. The workflow uploads `app/` to Pages. Nothing else
+happens; it does not build, bundle, or run Python.
+
+**There is no `app.py` and should not be one.** `serve.py` is a stdlib static
+server for development only. Omnia has no backend — adding a Flask entry point at
+the root would imply otherwise. Phase 8's optional API gets its own entry point
+when it exists.
 
 ---
 
 ## Gotchas
 
-- **`.nojekyll` must stay.** Without it Jekyll ignores `_`-prefixed files and can
-  mangle assets.
+- **`.nojekyll`**: the Actions deploy uploads `app/` as an artifact and never runs
+  Jekyll, so it is not strictly load-bearing today. It stays because it costs
+  nothing and is the one thing that breaks silently if Pages is ever switched back
+  to branch-based publishing.
 - **Hash routing is required.** Pages has no rewrite rules — `#/calendar` survives a
   refresh, `/calendar` returns 404.
 - **Paths must be relative** (`assets/...`, never `/assets/...`). The site is served

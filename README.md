@@ -11,24 +11,38 @@ schoolers, and built to open on a phone in a bedroom before school.
 
 ## Run it
 
-There is no build step.
-
 ```bash
-python -m http.server 8000 --directory docs
+python serve.py
 ```
 
-Then open <http://localhost:8000>.
+Serves the app and opens a browser. No build step, no `pip install` — it is
+standard library only.
+
+| | |
+|---|---|
+| `python serve.py` | the app, at <http://localhost:8000> |
+| `python serve.py --tests` | opens both test pages |
+| `python serve.py --lan` | also reachable from your phone on the same Wi-Fi |
+| `python serve.py --port 3000` | if 8000 is taken |
+
+`serve.py` is a development convenience, not a backend — Omnia has no server
+code. Any static server works just as well:
+`python -m http.server 8000 --directory app`.
+
+Don't open `app/index.html` directly from the file system; browsers block ES
+modules and `fetch()` on `file://`, so the catalog never loads.
 
 ## Deploy it
 
-Push to `main`. In the repository's **Settings → Pages**, set the source to
-`main` and the folder to `/docs`. That is the entire pipeline — GitHub Pages
-serves `docs/` as static files, so a push is a deploy.
+Push to `main`. The workflow in `.github/workflows/pages.yml` uploads `app/` to
+GitHub Pages — a push is a deploy, and there is no build step.
+
+One-time setup: **Settings → Pages → Source → GitHub Actions**.
 
 ## What's in here
 
 ```
-docs/          the app — this is what GitHub Pages serves
+app/           the app — this is what GitHub Pages serves
 tools/         build_catalog.py, which regenerates the exercise data
 tests/         browser tests for the timer and calendar rules
 ROADMAP.md     phases, done and planned
@@ -37,13 +51,13 @@ CLAUDE.md      the details worth knowing before changing anything
 
 ## Test it
 
-Serve the repository root and open the two pages — no runner, no dependencies.
-
 ```bash
-python -m http.server 8000
-# http://localhost:8000/tests/timer.test.html
-# http://localhost:8000/tests/store.test.html
+python serve.py --tests
 ```
+
+Opens both test pages. No runner, no dependencies — each prints PASS/FAIL lines
+and a summary. They cover the timer's interval rules and the calendar's colour
+rules; both are product decisions, so they are pinned rather than eyeballed.
 
 ## Exercise data
 
@@ -66,8 +80,9 @@ The generated file is committed, so nobody needs Python to deploy.
 
 ## Stack
 
-Tailwind 4 and daisyUI 5, loaded from a CDN — no `npm install`, no bundler.
-Python is a build-time tool only; GitHub Pages runs no server code. Supabase
-arrives in Phase 9 and is reached from the browser, so Pages stays sufficient.
+Tailwind 4 and daisyUI 5, loaded from a CDN — no `npm install`, no bundler. The
+Pages workflow uploads `app/` verbatim; it compiles nothing. Python is a
+build-time tool only; GitHub Pages runs no server code. Supabase arrives in
+Phase 9 and is reached from the browser, so Pages stays sufficient.
 
 See [ROADMAP.md](ROADMAP.md) for what's next.

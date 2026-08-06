@@ -1,5 +1,5 @@
 # Build-time only. Nothing here is shipped to the browser or needed to deploy —
-# GitHub Pages serves docs/ as static files. See CLAUDE.md.
+# GitHub Pages serves app/ as static files. See CLAUDE.md.
 #
 # tools/build_catalog.py uses urllib from the standard library, so this file is
 # currently empty of hard requirements. It exists so `pip install -r` is always

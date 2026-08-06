@@ -1,7 +1,7 @@
 """Generate Omnia's exercise catalog from free-exercise-db.
 
 Omnia is hosted on GitHub Pages, which serves files and runs nothing, so this
-script is a *build-time* tool: it writes ``docs/assets/data/exercises.json``,
+script is a *build-time* tool: it writes ``app/assets/data/exercises.json``,
 that file is committed, and the site reads it as a static asset. Nobody needs
 Python to deploy Omnia — only to change what is in the catalog.
 
@@ -45,8 +45,8 @@ IMAGE_BASE = (
 )
 
 ROOT = Path(__file__).resolve().parent.parent
-OUT_PATH = ROOT / "docs" / "assets" / "data" / "exercises.json"
-ROUTINES_PATH = ROOT / "docs" / "assets" / "data" / "routines.json"
+OUT_PATH = ROOT / "app" / "assets" / "data" / "exercises.json"
+ROUTINES_PATH = ROOT / "app" / "assets" / "data" / "routines.json"
 
 # --------------------------------------------------------------------------
 # Curation
@@ -179,7 +179,7 @@ def fetch_source() -> list[dict]:
     except urllib.error.URLError as exc:
         sys.exit(
             f"error: could not reach free-exercise-db ({exc}).\n"
-            f"       docs/assets/data/exercises.json is committed, so the site "
+            f"       app/assets/data/exercises.json is committed, so the site "
             f"still works — this only blocks regenerating it."
         )
 
