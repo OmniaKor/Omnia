@@ -10,7 +10,15 @@ const KEY = 'omnia.v1';
 
 const EMPTY = {
   version: 1,
-  prefs: { intervalSeconds: 30, continuous: false, theme: 'auto' },
+  prefs: {
+    intervalSeconds: 30,
+    continuous: false,
+    theme: 'auto',
+    // Sound is on by default, but nothing plays until a user gesture unlocks
+    // the audio context, so this can never surprise someone on page load.
+    soundMuted: false,
+    musicEnabled: true,
+  },
   sessions: [],
 };
 
