@@ -67,6 +67,7 @@ export function renderPlayer(view, routine) {
     onTick: (s) => paint(els, s, exercises),
     onAdvance: (index) => {
       showExercise(els, exercises, index);
+      audio.advance();
       announce(exercises[index].name);
     },
     onFinish: () => finish(view, routine, timer, startedAt),

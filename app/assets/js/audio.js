@@ -147,6 +147,22 @@ class Audio {
     this.vibrate(12);
   }
 
+  /**
+   * An interval ended and the next exercise is up.
+   *
+   * A rising two-note figure (A4 → E5, a fifth). It resolves upward, which
+   * reads as "go" rather than "stop" — important in continuous mode, where
+   * this is the only marker between one exercise and the next and the user
+   * needs to move, not wait.
+   *
+   * Louder and longer than a tick so it is never mistaken for one.
+   */
+  advance() {
+    this._note({ freq: 440.00, duration: 0.13, gain: 0.20, type: 'sine' });
+    this._note({ freq: 659.25, duration: 0.30, gain: 0.18, type: 'sine', delay: 0.10 });
+    this.vibrate([28, 45, 28]);
+  }
+
   /* ── Haptics ──────────────────────────────────────────────────────── */
 
   /**
