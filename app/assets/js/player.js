@@ -26,10 +26,14 @@ let active = null;
  */
 let lastCueSecond = null;
 
+/** The phase the last paint saw, so transitions can be detected. */
+let lastCuePhase = null;
+
 export function renderPlayer(view, routine) {
   teardown();
 
   lastCueSecond = null;
+  lastCuePhase = null;
   // Belt and braces. The real unlock happens on the Start button, inside the
   // gesture; by the time the hashchange lands this is only a resume.
   audio.unlock();
@@ -127,6 +131,8 @@ function paint(els, snapshot, exercises) {
   els.time.textContent = clockText(snapshot.secondsLeft);
 
   cueSecond(snapshot);
+  cuePhase(lastCuePhase, snapshot.phase);
+  lastCuePhase = snapshot.phase;
 
   // Deplete the ring as time runs out.
   els.arc.style.strokeDashoffset = String(RING * snapshot.fraction);
@@ -168,6 +174,19 @@ function cueSecond(snapshot) {
   if (snapshot.phase === 'running' && second <= 3 && second >= 1) {
     audio.tick(second);
   }
+}
+
+/**
+ * Fire the cues that belong to a change of phase rather than a tick.
+ *
+ * Phase transitions are the moments the user needs to *hear*, because each one
+ * asks for a different action: keep going, stop and tap, rest, resume.
+ */
+function cuePhase(previous, next) {
+  if (previous === next) return;
+
+  // Continuous mode never reaches this phase — there is no gate to announce.
+  if (next === 'awaiting-ready') audio.gate();
 }
 
 function showExercise(els, exercises, index) {

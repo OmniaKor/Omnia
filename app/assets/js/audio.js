@@ -163,6 +163,24 @@ class Audio {
     this.vibrate([28, 45, 28]);
   }
 
+  /**
+   * The interval hit zero and the run is waiting on "Ready?".
+   *
+   * Continuous mode has no gate, so this fires only when it is off — and it
+   * must not sound like `advance()`, because the required action is the
+   * opposite: stop, and tap. So it falls (E5 → A4) instead of rising, and the
+   * buzz is one long pulse rather than a double tap.
+   *
+   * This is the cue most likely to be heard rather than seen — the user has
+   * just finished thirty seconds of work and is probably not looking at the
+   * screen.
+   */
+  gate() {
+    this._note({ freq: 659.25, duration: 0.14, gain: 0.18, type: 'sine' });
+    this._note({ freq: 440.00, duration: 0.34, gain: 0.17, type: 'sine', delay: 0.11 });
+    this.vibrate(90);
+  }
+
   /* ── Haptics ──────────────────────────────────────────────────────── */
 
   /**
