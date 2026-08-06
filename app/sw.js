@@ -23,6 +23,7 @@ const SHELL = [
   './assets/data/routines.json',
   './assets/js/app.js',
   './assets/js/audio.js',
+  './assets/js/builder.js',
   './assets/js/calendar.js',
   './assets/js/catalog.js',
   './assets/js/player.js',

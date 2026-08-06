@@ -11,10 +11,11 @@
  *   #/calendar            the month grid
  */
 
-import { loadCatalog, getRoutine } from './catalog.js';
+import { loadCatalog, getRoutine, allRoutines } from './catalog.js';
 import { renderList, renderPreview } from './routines.js';
 import { renderPlayer, teardown } from './player.js';
 import { renderCalendar } from './calendar.js';
+import { renderBuilder } from './builder.js';
 import { getPrefs, setPrefs } from './store.js';
 import { esc } from './ui.js';
 
@@ -35,19 +36,25 @@ function route() {
   // chrome — including the browser Back button, which is the common case.
   if (section !== 'play') teardown();
 
-  markActive(section === 'play' ? 'routines' : section);
+  markActive(section === 'calendar' ? 'calendar' : 'routines');
 
   try {
+    // Recomputed per navigation: custom routines are created, edited and
+    // deleted while the app is running, so a snapshot taken at boot goes stale.
+    const routines = allRoutines(catalog);
+
     if (section === 'calendar') {
-      renderCalendar(view, catalog);
+      renderCalendar(view, { routines });
+    } else if (section === 'build') {
+      renderBuilder(view, catalog, id);
     } else if (section === 'play' && id) {
-      const routine = getRoutine(catalog.routines, id);
+      const routine = getRoutine(routines, id);
       routine ? renderPlayer(view, routine) : notFound();
     } else if (section === 'routines' && id) {
-      const routine = getRoutine(catalog.routines, id);
+      const routine = getRoutine(routines, id);
       routine ? renderPreview(view, routine) : notFound();
     } else {
-      renderList(view, catalog);
+      renderList(view, { routines });
     }
   } catch (error) {
     fail(error);

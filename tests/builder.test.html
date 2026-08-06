@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="omnia">
+<head>
+<meta charset="utf-8">
+<title>Omnia — builder tests</title>
+<link rel="stylesheet" href="../app/assets/css/omnia.css">
+<style>
+  body { font: 14px ui-monospace, monospace; padding: 1.5rem; }
+  .pass::before { content: "PASS  "; color: #1f6a42; }
+  .fail::before { content: "FAIL  "; color: #8f2010; }
+  .fail { color: #8f2010; }
+  #summary { margin: 1rem 0 2rem; font-weight: 600; }
+  #view { display: none; }        /* driven, not looked at */
+</style>
+</head>
+<body>
+<h1>builder</h1>
+<div id="out"></div>
+<div id="summary">running…</div>
+
+<div id="view"></div>
+
+<script type="module">
+/*
+  Drives the real builder against a fake catalog: clicks rows, types in the
+  search box, adds a user-defined exercise, saves, and checks what landed in
+  storage.
+
+  The catalog is fabricated rather than fetched so the assertions are exact,
+  and every exercise is a placeholder so no test run hits the image CDN.
+*/
+
+localStorage.removeItem('omnia.v1');
+
+const results = [];
+const ok = (name, condition, detail = '') => results.push({ name, condition, detail });
+
+const store = await import('../app/assets/js/store.js');
+const { renderBuilder } = await import('../app/assets/js/builder.js');
+const { resolveRoutine, allRoutines } = await import('../app/assets/js/catalog.js');
+
+/* ── Fixture ────────────────────────────────────────────────────────── */
+
+const raw = [
+  { id: 'Crunches',      name: 'Crunches',       level: 'beginner',     primary: ['abs'] },
+  { id: 'Plank',         name: 'Plank',          level: 'beginner',     primary: ['abs'] },
+  { id: 'Russian_Twist', name: 'Russian Twist',  level: 'intermediate', primary: ['abs'] },
+  { id: 'Hanging_Pike',  name: 'Hanging Pike',   level: 'expert',       primary: ['abs'] },
+  { id: 'Superman',      name: 'Superman',       level: 'beginner',     primary: ['lower back'] },
+];
+
+const exercises = raw.map((e) => ({
+  ...e, images: [], instructions: [], placeholder: true,
+  search: [e.name, e.level, ...e.primary].join(' ').toLowerCase(),
+}));
+
+const catalog = { exercises, byId: new Map(exercises.map((e) => [e.id, e])), builtin: [] };
+
+const view = document.getElementById('view');
+const $ = (sel) => view.querySelector(sel);
+const rows = () => [...view.querySelectorAll('[data-add]')];
+const visible = () => rows().filter((r) => !r.hidden);
+const picked = () => [...view.querySelectorAll('.picked-row__name')].map((n) => n.textContent);
+
+const type = (input, value) => {
+  input.value = value;
+  input.dispatchEvent(new Event('input', { bubbles: true }));
+};
+
+renderBuilder(view, catalog, null);
+
+/* ── Browsing ───────────────────────────────────────────────────────── */
+
+ok('lists the whole catalog', rows().length === 5, `${rows().length}`);
+ok('everything visible before filtering', visible().length === 5, `${visible().length}`);
+ok('save is disabled with nothing picked', $('#save').disabled === true);
+
+/* ── Search ─────────────────────────────────────────────────────────── */
+
+type($('#search'), 'plank');
+ok('search matches by name', visible().length === 1 && visible()[0].dataset.add === 'Plank',
+   visible().map((r) => r.dataset.add).join(','));
+
+type($('#search'), 'PLANK');
+ok('search is case-insensitive', visible().length === 1);
+
+type($('#search'), 'lower back');
+ok('search matches muscle as well as name',
+   visible().length === 1 && visible()[0].dataset.add === 'Superman',
+   visible().map((r) => r.dataset.add).join(','));
+
+type($('#search'), 'zzzz');
+ok('no matches shows the empty note', visible().length === 0 && $('#catalog-empty').hidden === false);
+
+/* Filtering must hide rows, never rebuild them — rebuilding would tear down
+   and re-create every <img>, which flickers on each keystroke. */
+const firstRow = rows()[0];
+type($('#search'), '');
+ok('filtering reuses the same DOM nodes', rows()[0] === firstRow);
+ok('clearing search restores everything', visible().length === 5);
+
+/* ── Level chips ────────────────────────────────────────────────────── */
+
+view.querySelector('[data-level="beginner"]').click();
+ok('level chip filters', visible().length === 3, `${visible().length}`);
+
+type($('#search'), 'plank');
+ok('search and level combine', visible().length === 1 && visible()[0].dataset.add === 'Plank');
+
+type($('#search'), '');
+view.querySelector('[data-level="all"]').click();
+ok('all restores the catalog', visible().length === 5);
+
+/* ── Picking ────────────────────────────────────────────────────────── */
+
+rows().find((r) => r.dataset.add === 'Plank').click();
+rows().find((r) => r.dataset.add === 'Crunches').click();
+
+ok('picking adds in tap order',
+   JSON.stringify(picked()) === JSON.stringify(['Plank', 'Crunches']), picked().join(','));
+ok('picked rows are marked',
+   rows().find((r) => r.dataset.add === 'Plank').classList.contains('is-picked'));
+ok('save enables once something is picked', $('#save').disabled === false);
+ok('summary shows count and a clamped range',
+   /2 exercises · 5–5 min/.test($('#summary').textContent), $('#summary').textContent);
+
+rows().find((r) => r.dataset.add === 'Plank').click();
+ok('tapping again removes',
+   JSON.stringify(picked()) === JSON.stringify(['Crunches']), picked().join(','));
+rows().find((r) => r.dataset.add === 'Plank').click();
+
+/* ── Reordering ─────────────────────────────────────────────────────── */
+
+view.querySelector('[data-move="1"][data-delta="-1"]').click();
+ok('move up reorders',
+   JSON.stringify(picked()) === JSON.stringify(['Plank', 'Crunches']), picked().join(','));
+
+ok('first row cannot move up',
+   view.querySelector('[data-move="0"][data-delta="-1"]').disabled === true);
+ok('last row cannot move down',
+   view.querySelector('[data-move="1"][data-delta="1"]').disabled === true);
+
+view.querySelector('[data-remove="0"]').click();
+ok('remove drops the right row',
+   JSON.stringify(picked()) === JSON.stringify(['Crunches']), picked().join(','));
+
+/* ── Your own exercise ──────────────────────────────────────────────── */
+
+$('#add-own').click();
+$('#own-name').value = '';
+$('#own-save').click();
+ok('an unnamed exercise is refused', $('#own-dialog').open === true);
+
+$('#own-name').value = 'Dead Hang Tuck';
+$('#own-cue').value = 'Knees to chest, slow.';
+$('#own-save').click();
+
+ok('adding your own closes the dialog', $('#own-dialog').open === false);
+ok('your own exercise joins the routine',
+   JSON.stringify(picked()) === JSON.stringify(['Crunches', 'Dead Hang Tuck']),
+   picked().join(','));
+
+/* ── Saving ─────────────────────────────────────────────────────────── */
+
+type($('#routine-name'), 'Morning core');
+$('#save').click();
+
+const saved = store.getCustomRoutines();
+ok('one routine is stored', saved.length === 1, `${saved.length}`);
+
+const routine = saved[0];
+ok('name is stored', routine.name === 'Morning core', routine.name);
+ok('marked custom', routine.custom === true);
+ok('stores ids, in order',
+   routine.exercises.length === 2 && routine.exercises[0] === 'Crunches',
+   JSON.stringify(routine.exercises));
+ok('your own exercise is stored on the routine',
+   routine.customExercises.length === 1 &&
+   routine.customExercises[0].name === 'Dead Hang Tuck',
+   JSON.stringify(routine.customExercises));
+ok('your own exercise carries its cue',
+   routine.customExercises[0].instructions[0] === 'Knees to chest, slow.');
+ok('your own exercise is flagged as a placeholder',
+   routine.customExercises[0].placeholder === true);
+
+/* ── Resolution ─────────────────────────────────────────────────────── */
+
+{
+  const resolved = resolveRoutine(catalog.byId, routine);
+  ok('resolves against catalog and custom exercises together',
+     resolved.exercises.length === 2 &&
+     resolved.exercises[0].name === 'Crunches' &&
+     resolved.exercises[1].name === 'Dead Hang Tuck',
+     resolved.exercises.map((e) => e.name).join(','));
+
+  ok('duration is clamped to the promised floor',
+     resolved.duration.low === 5 && resolved.duration.high === 5,
+     JSON.stringify(resolved.duration));
+
+  const merged = allRoutines(catalog);
+  ok('custom routines join the routine list', merged.length === 1 && merged[0].custom === true);
+}
+
+/* Ids referencing a movement that no longer exists must be dropped, not
+   rendered as a hole — a catalog rebuild can remove one under a saved
+   routine's feet. */
+{
+  const stale = { ...routine, exercises: ['Crunches', 'No_Such_Exercise'] };
+  const resolved = resolveRoutine(catalog.byId, stale);
+  ok('unknown ids are dropped', resolved.exercises.length === 1,
+     resolved.exercises.map((e) => e.name).join(','));
+}
+
+/* ── Editing ────────────────────────────────────────────────────────── */
+
+{
+  renderBuilder(view, catalog, routine.id);
+  ok('edit loads the saved name', $('#routine-name').value === 'Morning core');
+  ok('edit loads the picked exercises',
+     JSON.stringify(picked()) === JSON.stringify(['Crunches', 'Dead Hang Tuck']),
+     picked().join(','));
+  ok('edit offers delete', $('#delete') !== null);
+
+  rows().find((r) => r.dataset.add === 'Superman').click();
+  $('#save').click();
+
+  const after = store.getCustomRoutines();
+  ok('editing updates in place, not appends', after.length === 1, `${after.length}`);
+  ok('the edit is stored', after[0].exercises.length === 3, JSON.stringify(after[0].exercises));
+  ok('the id is stable across edits', after[0].id === routine.id);
+}
+
+/* Removing a custom exercise must not leave it stored — otherwise it comes
+   back the next time the routine is edited. */
+{
+  renderBuilder(view, catalog, routine.id);
+  const ownIndex = picked().indexOf('Dead Hang Tuck');
+  view.querySelector(`[data-remove="${ownIndex}"]`).click();
+  $('#save').click();
+
+  const after = store.getCustomRoutines()[0];
+  ok('removing your own exercise also drops its definition',
+     after.customExercises.length === 0, JSON.stringify(after.customExercises));
+}
+
+/* ── Deleting ───────────────────────────────────────────────────────── */
+
+{
+  const id = store.getCustomRoutines()[0].id;
+  store.addSession({
+    routineId: id, status: 'completed', intervalSeconds: 30,
+    continuous: false, exercisesDone: 3, startedAt: new Date().toISOString(),
+  });
+
+  store.deleteCustomRoutine(id);
+  ok('delete removes the routine', store.getCustomRoutines().length === 0);
+  /* Deleting a routine must not repaint the calendar — those were days the
+     user actually trained. */
+  ok('delete leaves completed days on the calendar',
+     store.dayStatus(store.localDate()) === 'green', store.dayStatus(store.localDate()));
+}
+
+/* ── Report ─────────────────────────────────────────────────────────── */
+
+localStorage.removeItem('omnia.v1');
+
+document.getElementById('out').innerHTML = results
+  .map((r) => `<div class="${r.condition ? 'pass' : 'fail'}">${r.name}${
+    r.condition ? '' : ` — got ${r.detail}`}</div>`)
+  .join('');
+
+const failed = results.filter((r) => !r.condition).length;
+document.getElementById('summary').textContent =
+  failed === 0 ? `ALL PASS — ${results.length} assertions`
+               : `${failed} FAILED of ${results.length}`;
+</script>
+</body>
+</html>

@@ -20,6 +20,7 @@ const EMPTY = {
     musicEnabled: true,
   },
   sessions: [],
+  customRoutines: [],
 };
 
 /**
@@ -44,6 +45,7 @@ function read() {
       ...parsed,
       prefs: { ...EMPTY.prefs, ...(parsed.prefs || {}) },
       sessions: Array.isArray(parsed.sessions) ? parsed.sessions : [],
+      customRoutines: Array.isArray(parsed.customRoutines) ? parsed.customRoutines : [],
     };
   } catch {
     // Corrupt or blocked storage (Safari private mode throws on read). Losing
@@ -138,6 +140,54 @@ export function completionDates(routineId) {
     .filter((s) => s.routineId === routineId && s.status === 'completed')
     .map((s) => s.localDate);
   return [...new Set(dates)].sort().reverse();
+}
+
+/* ── Custom routines ──────────────────────────────────────────────────── */
+
+/**
+ * Routines the user built.
+ *
+ * Stored unresolved — `exercises` is a list of ids, and `customExercises`
+ * holds any movements the user invented, scoped to this routine. Resolution
+ * against the catalog happens in catalog.js, so the stored shape stays a
+ * plain record that Phase 9 can send to Supabase unchanged.
+ */
+export function getCustomRoutines() {
+  return state.customRoutines.map((routine) => ({ ...routine }));
+}
+
+export function getCustomRoutine(id) {
+  return state.customRoutines.find((r) => r.id === id) || null;
+}
+
+/** Insert or update by id. Returns the saved record. */
+export function saveCustomRoutine(routine) {
+  const now = new Date().toISOString();
+  const index = state.customRoutines.findIndex((r) => r.id === routine.id);
+
+  const record = {
+    ...routine,
+    id: routine.id || `custom-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`,
+    custom: true,
+    createdAt: index === -1 ? now : state.customRoutines[index].createdAt,
+    updatedAt: now,
+  };
+
+  if (index === -1) state.customRoutines.push(record);
+  else state.customRoutines[index] = record;
+
+  write(state);
+  return record;
+}
+
+/**
+ * Remove a routine. Its past sessions are deliberately left alone — deleting a
+ * routine should not silently repaint the calendar and erase days the user
+ * actually trained. The calendar falls back to the stored id for the name.
+ */
+export function deleteCustomRoutine(id) {
+  state.customRoutines = state.customRoutines.filter((r) => r.id !== id);
+  write(state);
 }
 
 /** The earliest day with any history — days before it are blank, not red. */

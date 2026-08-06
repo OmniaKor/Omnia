@@ -88,9 +88,9 @@ def main() -> int:
     directory = ROOT if args.tests else APP_DIR
     host = "0.0.0.0" if args.lan else "127.0.0.1"
 
+    suites = ("timer", "store", "audio", "builder")
     urls = (
-        [f"http://localhost:{args.port}/tests/timer.test.html",
-         f"http://localhost:{args.port}/tests/store.test.html"]
+        [f"http://localhost:{args.port}/tests/{name}.test.html" for name in suites]
         if args.tests else
         [f"http://localhost:{args.port}/"]
     )

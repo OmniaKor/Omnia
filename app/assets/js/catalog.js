@@ -9,6 +9,8 @@
 export const MIN_MINUTES = 5;
 export const MAX_MINUTES = 15;
 
+import { getCustomRoutines } from './store.js';
+
 let cache = null;
 
 export async function loadCatalog() {
@@ -29,18 +31,56 @@ export async function loadCatalog() {
 
   const byId = new Map(exerciseDoc.exercises.map((e) => [e.id, e]));
 
-  const routines = routineDoc.routines.map((routine) => {
-    // Drop unknown ids rather than rendering a hole. `--check` in the build
-    // script catches these before they ship, so this is belt and braces.
-    const exercises = routine.exercises
-      .map((id) => byId.get(id))
-      .filter(Boolean);
+  const builtin = routineDoc.routines.map((routine) => resolveRoutine(byId, routine));
 
-    return { ...routine, exercises, duration: estimateRange(exercises.length) };
-  });
+  // `search` is precomputed once here rather than per keystroke in the builder:
+  // lowercasing and joining 43 records on every input event is wasted work, and
+  // this is the only place that knows the catalog is immutable.
+  const searchable = exerciseDoc.exercises.map((exercise) => ({
+    ...exercise,
+    search: [exercise.name, exercise.level, ...(exercise.primary || [])]
+      .join(' ')
+      .toLowerCase(),
+  }));
 
-  cache = { exercises: exerciseDoc.exercises, byId, routines };
+  cache = { exercises: searchable, byId, builtin };
   return cache;
+}
+
+/**
+ * Turn a stored routine (ids) into a renderable one (exercise records).
+ *
+ * Movements the user invented live on the routine itself, so they are checked
+ * before the shared catalog — a custom exercise is scoped to the routine that
+ * defines it and never leaks into anyone else's.
+ */
+export function resolveRoutine(byId, routine) {
+  const local = new Map((routine.customExercises || []).map((e) => [e.id, e]));
+
+  // Drop unknown ids rather than rendering a hole. `--check` in the build
+  // script catches these for built-ins, so this mostly guards custom routines
+  // that referenced an exercise removed by a later catalog rebuild.
+  const exercises = routine.exercises
+    .map((id) => local.get(id) || byId.get(id))
+    .filter(Boolean);
+
+  return { ...routine, exercises, duration: estimateRange(exercises.length) };
+}
+
+/**
+ * Every routine, built-in and custom.
+ *
+ * Recomputed on each call rather than cached, because custom routines change
+ * while the app is running. The work is a few array maps over a handful of
+ * records — cheap enough that a cache would only be a staleness bug waiting to
+ * happen.
+ */
+export function allRoutines(catalog) {
+  const custom = getCustomRoutines()
+    .map((routine) => resolveRoutine(catalog.byId, routine))
+    .sort((a, b) => (b.updatedAt || '').localeCompare(a.updatedAt || ''));
+
+  return [...catalog.builtin, ...custom];
 }
 
 export function getRoutine(routines, id) {

@@ -539,6 +539,188 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
   border-radius: var(--radius-field);
 }
 
+/* ─── 6b. Builder ───────────────────────────────────────────────────── */
+
+.field {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  background: var(--color-base-100);
+  border: 1px solid color-mix(in srgb, var(--color-base-content) 18%, transparent);
+  border-radius: var(--radius-field);
+  font-size: 1rem;                  /* < 16px makes iOS zoom the page on focus */
+}
+.field:focus { outline: 2px solid var(--color-accent); outline-offset: 1px; }
+
+.field--name {
+  font-family: "Noto Serif", Georgia, serif;
+  font-size: clamp(1.25rem, 5vw, 1.75rem);
+  font-weight: 300;
+  margin-bottom: 1.25rem;
+}
+
+.search { position: relative; }
+.search .field { padding-right: 2.75rem; }
+.search__clear {
+  position: absolute;
+  right: 0.35rem; top: 50%;
+  transform: translateY(-50%);
+  width: 2rem; height: 2rem;
+  min-height: 2rem;
+  border: 0; border-radius: 999px;
+  background: none;
+  color: var(--color-secondary);
+  cursor: pointer;
+}
+.search__clear:hover { color: var(--color-accent); }
+
+.build-tools { display: grid; gap: 0.6rem; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.chip {
+  padding: 0.4rem 0.75rem;
+  min-height: 36px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-base-content) 18%, transparent);
+  background: none;
+  color: var(--color-secondary);
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+.chip[aria-pressed="true"] {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-accent-content);
+}
+
+.build-count { margin: 0.75rem 0 0.25rem; }
+
+.build-layout { display: grid; grid-template-columns: 1fr; gap: 1.5rem; align-items: start; }
+@media (width >= 64rem) {
+  .build-layout { grid-template-columns: minmax(0, 1fr) 20rem; gap: 2.5rem; }
+  /* The picked list stays in view while the catalog scrolls — on desktop the
+     catalog is long enough that an unpinned summary scrolls out of reach. */
+  .build-aside { position: sticky; top: 1.25rem; }
+}
+
+/* Catalog rows in pick mode: thumbnail, name, and a target on the right. */
+.ex-row--pick {
+  grid-template-columns: 4.5rem 1fr 1.75rem;
+  cursor: pointer;
+  border-radius: var(--radius-field);
+  padding-left: 0.4rem;
+  padding-right: 0.4rem;
+}
+.ex-row--pick:hover { background: color-mix(in srgb, var(--color-base-content) 4%, transparent); }
+
+.ex-row__pick {
+  width: 1.5rem; height: 1.5rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--color-base-content) 25%, transparent);
+  display: grid; place-items: center;
+  justify-self: end;
+}
+.ex-row__pick::after { content: "+"; font-size: 0.9rem; color: var(--color-secondary); }
+
+.ex-row--pick.is-picked .ex-row__pick {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+}
+.ex-row--pick.is-picked .ex-row__pick::after {
+  content: "✓";
+  color: var(--color-accent-content);
+  font-size: 0.75rem;
+}
+
+.picked-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.3rem; }
+
+.picked-row {
+  display: grid;
+  grid-template-columns: 1.6rem 1fr auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.3rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-base-content) 8%, transparent);
+}
+.picked-row__num {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  color: var(--color-secondary);
+}
+.picked-row__name {
+  font-size: 0.86rem;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.picked-row__actions { display: flex; gap: 0.15rem; }
+
+/* Compact by necessity — three controls per row inside a 20rem column. The
+   44px rule is relaxed only here, and the row itself stays tall enough that
+   the buttons are not adjacent to anything destructive by accident. */
+.mini {
+  width: 30px; height: 30px;
+  min-height: 30px;
+  border: 1px solid color-mix(in srgb, var(--color-base-content) 15%, transparent);
+  border-radius: var(--radius-selector);
+  background: none;
+  color: var(--color-secondary);
+  cursor: pointer;
+  font-size: 0.75rem;
+  line-height: 1;
+}
+.mini:hover { color: var(--color-base-content); border-color: var(--color-base-content); }
+.mini[disabled] { opacity: 0.3; cursor: default; }
+.mini--remove:hover { color: var(--color-error); border-color: var(--color-error); }
+
+/* Sticky action bar, phones only. Sits directly above the tab bar. */
+.build-bar {
+  position: fixed;
+  left: 0; right: 0;
+  bottom: calc(4.1rem + env(safe-area-inset-bottom));
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem calc(1.25rem + env(safe-area-inset-right))
+           0.6rem calc(1.25rem + env(safe-area-inset-left));
+  background: color-mix(in srgb, var(--color-base-100) 94%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid color-mix(in srgb, var(--color-base-content) 12%, transparent);
+}
+.build-bar__count {
+  flex: 1;
+  min-width: 0;
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--color-secondary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.build-bar__save { width: auto; flex: none; padding: 0.7rem 1.25rem; }
+
+@media (width >= 64rem) {
+  /* Desktop has the aside pinned in view, so the bar would be a duplicate. */
+  .build-bar { display: none; }
+}
+/* The aside's own Save is the redundant one on a phone. */
+@media (width < 64rem) {
+  .build-aside .panel > #save { display: none; }
+}
+
+/* Clear the sticky bar as well as the tab bar. */
+@media (width < 60rem) {
+  .view:has(.build-bar) { padding-bottom: 3.5rem; }
+}
+
+.routine-card--new {
+  border-style: dashed;
+  justify-content: center;
+}
+.routine-card--new .routine-card__name { color: var(--color-accent); }
+
+.edit-link { color: var(--color-accent); text-decoration: underline; }
+
+.btn-omnia[disabled] { opacity: 0.45; cursor: default; filter: none; }
+
 /* ─── 7. Player ─────────────────────────────────────────────────────── */
 
 .player {

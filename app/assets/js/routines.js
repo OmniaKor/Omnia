@@ -21,6 +21,13 @@ export function renderList(view, { routines }) {
     </div>
     <div class="routine-grid">
       ${routines.map(card).join('')}
+      <a class="routine-card routine-card--new" href="#/build">
+        <span class="routine-card__top">
+          <span class="routine-card__name">Build your own</span>
+          <span class="type-label">+</span>
+        </span>
+        <span class="routine-card__meta">Pick exercises, or add your own</span>
+      </a>
     </div>
   `;
 
@@ -42,7 +49,7 @@ function card(routine) {
         <span class="type-label">${low}–${high} min</span>
       </span>
       <span class="routine-card__meta">
-        <span>${esc(routine.focus)}</span>
+        <span>${routine.custom ? 'Yours' : esc(routine.focus)}</span>
         <span aria-hidden="true">·</span>
         <span>${routine.exercises.length} exercises</span>
         ${done ? `<span class="routine-card__dot" aria-hidden="true"></span>
@@ -63,7 +70,10 @@ export function renderPreview(view, routine) {
 
     <div class="section-head">
       <h2 class="type-display">${esc(routine.name)}</h2>
-      <p class="type-label">${esc(routine.focus)} · ${low}–${high} min</p>
+      <p class="type-label">
+        ${routine.custom ? 'Yours' : esc(routine.focus)} · ${low}–${high} min
+        ${routine.custom ? `· <a href="#/build/${esc(routine.id)}" class="edit-link">edit</a>` : ''}
+      </p>
     </div>
 
     <div class="preview-layout">

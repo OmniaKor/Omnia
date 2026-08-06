@@ -54,9 +54,12 @@ Omnia/
 ├── .github/workflows/pages.yml   # uploads app/ to Pages; compiles nothing
 ├── tools/
 │   └── build_catalog.py          # regenerates the exercise catalog
+├── serve.py                      # dev server. NOT a backend — see below
 ├── tests/                        # open in a browser over http; not published
 │   ├── timer.test.html           # the interval rules
-│   └── store.test.html           # the calendar colour rules
+│   ├── store.test.html           # the calendar colour rules
+│   ├── audio.test.html           # the audio contract, plus buttons for ears
+│   └── builder.test.html         # drives the real builder against a fixture
 └── app/                          # ← what GitHub Pages serves
     ├── .nojekyll                 # belt and braces; see Gotchas
     ├── index.html                # the whole app — one page, hash-routed
@@ -70,13 +73,15 @@ Omnia/
         ├── img/                  # hero + placeholder art (SVG)
         └── js/
             ├── store.js          # localStorage; the only thing that persists
-            ├── catalog.js        # loads + indexes the JSON
-            ├── router.js         # hash router
+            ├── catalog.js        # loads + indexes the JSON, resolves routines
             ├── routines.js       # list + preview
+            ├── builder.js        # build/edit your own routine
             ├── player.js         # the timer screen
             ├── timer.js          # the interval engine
+            ├── audio.js          # every sound, plus haptics
             ├── calendar.js       # month grid
-            └── app.js            # boot
+            ├── ui.js             # shared helpers
+            └── app.js            # boot + hash router
 ```
 
 ---
@@ -148,6 +153,25 @@ These came from the product owner directly. Changing one is a product decision.
 - 🟨 yellow — quit, and nothing finished in full that day
 - 🟩 green — at least one routine finished in full. **Quit-then-finish is green.**
 
+**Sound** (Phase 6)
+- Every cue is **synthesised**, never a file. Keeps the repo text-only and works
+  offline. Do not add an mp3.
+- Nothing in `audio.js` may throw into the timer — every path degrades to silence
+- The context is created on a **user gesture** only. iOS Safari will not start
+  audio anywhere else, and a hashchange is outside the gesture window.
+- Cues are gated on the second *changing* — `paint()` runs every frame
+- Phase cues are **exclusive**: one transition, one sound
+- Haptics are suppressed when muted
+
+**Custom routines** (Phase 7)
+- Stored unresolved: `exercises` is a list of ids, `customExercises` holds the
+  user's own movements **scoped to that routine**
+- `catalog.js` resolves routine-local exercises *before* the shared catalog
+- Deleting a routine leaves its sessions alone — a deleted routine must not
+  repaint the calendar and erase days the user actually trained
+- The builder filters by toggling `hidden`, never by re-rendering. Re-rendering
+  rebuilds every `<img>`, which flickers on each keystroke.
+
 **Chrome**
 - Header: `Omnia` wordmark + hero image
 - Footer: `created by: Justin Li and Owen Zhang Track c/o 2026.`
@@ -189,7 +213,24 @@ One key: `omnia.v1`.
 ```jsonc
 {
   "version": 1,
-  "prefs": { "intervalSeconds": 30, "continuous": false, "theme": "auto" },
+  "prefs": {
+    "intervalSeconds": 30, "continuous": false, "theme": "auto",
+    "soundMuted": false, "musicEnabled": true
+  },
+  "customRoutines": [
+    {
+      "id": "custom-l8k2p",
+      "name": "Morning core",
+      "custom": true,
+      "exercises": ["Crunches", "Plank", "own-m3x1"],   // catalog ids + own ids
+      "customExercises": [                              // scoped to THIS routine
+        { "id": "own-m3x1", "name": "Dead Hang Tuck", "placeholder": true,
+          "images": [], "instructions": ["Knees to chest, slow."] }
+      ],
+      "createdAt": "2026-08-06T09:12:00.000Z",
+      "updatedAt": "2026-08-06T09:20:00.000Z"
+    }
+  ],
   "sessions": [
     {
       "id": "s_1a2b3c",

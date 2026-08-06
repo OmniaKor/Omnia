@@ -40,8 +40,8 @@ and survives refreshes but not a new phone. Phase 9 is what fixes that.
 | 3 | The player | ✅ Done |
 | 4 | Calendar | ✅ Done |
 | 5 | Mobile polish & PWA | ✅ Done |
-| 6 | Sound & haptics | ⬜ Next |
-| 7 | Real routine names & builder | ⬜ Planned |
+| 6 | Sound & haptics | ✅ Done |
+| 7 | Routine builder | ✅ Done (naming still open) |
 | 8 | Flask API (optional self-host) | ⬜ Planned |
 | 9 | Supabase — accounts & sync | ⬜ Planned |
 | 10 | Social & streaks | ⬜ Someday |
@@ -132,26 +132,47 @@ Mobile is the primary target, not an adaptation.
 
 ---
 
-## Phase 6 — Sound & haptics ⬜ NEXT
+## Phase 6 — Sound & haptics ✅
 
-Deferred out of Phase 3 on purpose: sound needs a user gesture to unlock on iOS, and
-that is its own problem, not the timer's.
+Every sound is synthesised with `OscillatorNode` — no audio files, so the repository
+stays text-only and cues work offline because there is nothing to fetch.
 
-- [ ] Countdown beeps on the last 3 seconds
-- [ ] Distinct tone at interval end / routine end
-- [ ] Unlock `AudioContext` on the first tap of "Start" — iOS Safari requirement
-- [ ] Mute toggle, remembered between sessions
-- [ ] `navigator.vibrate()` on Android; silent no-op on iOS
-- [ ] Generate tones with `OscillatorNode` — no audio files, keeps the repo tiny
-- [ ] Respect the ringer/silent switch where the browser exposes it
+- [x] Countdown ticks on the last 3 seconds, rising in pitch so 3 and 1 differ
+- [x] Rising tone when the next exercise starts
+- [x] Falling tone when the run holds for **"Ready?"** — the inverse of advance,
+      because the action it asks for is the opposite
+- [x] Break start and break end, a matched pair bracketing the rest
+- [x] Routine complete — a pentatonic arpeggio resolving to the octave
+- [x] Quit — quiet, and pointedly not a failure sound
+- [x] **Ambient music**: a slow A-minor pad with sparse shimmer, synthesised
+- [x] `AudioContext` unlocked on the Start tap — iOS Safari requirement
+- [x] Mute in the player top bar; Sound and Music toggles on the preview
+- [x] `navigator.vibrate()` on Android, suppressed when muted; no-op on iOS
+- [x] Context resumed on `visibilitychange`, or returning from a notification
+      leaves the rest of the routine silent
 
-## Phase 7 — Real routine names & builder ⬜
+**Still open**: respecting the iOS ringer switch. Safari does not expose it, so
+there is currently no way to detect it from a web app.
+
+## Phase 7 — Routine builder ✅ (naming still open)
+
+- [x] **Build your own**: search by name, or browse the list and pick
+- [x] Filter by level; search matches name, level and muscle
+- [x] Reorder with arrows — dragging a list item on a touch screen fights the
+      page scroll, and this is edited on a phone more often than not
+- [x] **Add your own exercise**, name and optional cue; no photo needed — it
+      renders the same drawn placeholder the catalog's own gaps use
+- [x] Edit and delete custom routines; deleting leaves completed days on the
+      calendar, because those were days the user actually trained
+- [x] Live duration estimate, clamped to the same 5–15 min promise
+- [x] Sticky save bar on phones — the catalog is 43 rows deep
+
+**Still open:**
 
 - [ ] Replace `Routine #1…#6` with real names and a one-line description each
-- [ ] Difficulty tag per routine
-- [ ] **Build your own**: pick exercises, order them, name it, save it
-- [ ] Edit / duplicate / delete custom routines
+- [ ] Duplicate a routine as a starting point
 - [ ] Share a routine as a URL — encode it in the hash, no server needed
+- [ ] Photos for user-added exercises
 - [ ] Replace the remaining `[placeholder]` cards with real images
 
 ## Phase 8 — Flask API (optional self-host) ⬜
