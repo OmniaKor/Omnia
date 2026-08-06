@@ -185,6 +185,21 @@ function cueSecond(snapshot) {
 function cuePhase(previous, next) {
   if (previous === next) return;
 
+  // Exclusive, in priority order — a transition gets exactly one cue.
+  //
+  // Leaving a break matters more than whatever the run returns *to*: breaking
+  // from the "Ready?" gate comes back to that same gate, and firing both
+  // breakEnd and gate would stack two cues on one transition.
+  if (previous === 'break') {
+    audio.breakEnd();
+    return;
+  }
+
+  if (next === 'break') {
+    audio.breakStart();
+    return;
+  }
+
   // Continuous mode never reaches this phase — there is no gate to announce.
   if (next === 'awaiting-ready') audio.gate();
 }

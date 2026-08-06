@@ -181,6 +181,35 @@ class Audio {
     this.vibrate(90);
   }
 
+  /**
+   * A fifteen-second break has started.
+   *
+   * Soft, low and slow — the one cue in the app that is not asking for
+   * anything. A triangle wave gliding down from D4 to A3, quiet enough to
+   * register as "rest" rather than as an instruction.
+   */
+  breakStart() {
+    this._note({
+      freq: 293.66, glide: 220.00, duration: 0.55, gain: 0.15, type: 'triangle',
+    });
+    this.vibrate(40);
+  }
+
+  /**
+   * The break is over and the exercise timer is resuming.
+   *
+   * Mirrors breakStart by gliding back up over the same interval, so the pair
+   * bracket the rest as one gesture. It resumes mid-exercise rather than
+   * starting a new one, so it is gentler than `advance()` — this is a return
+   * to work already in progress, not a fresh start.
+   */
+  breakEnd() {
+    this._note({
+      freq: 220.00, glide: 329.63, duration: 0.45, gain: 0.17, type: 'triangle',
+    });
+    this.vibrate([25, 40, 25]);
+  }
+
   /* ── Haptics ──────────────────────────────────────────────────────── */
 
   /**
