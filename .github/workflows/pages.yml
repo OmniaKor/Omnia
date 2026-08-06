@@ -29,6 +29,10 @@ concurrency:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    # The deploy step waits on the Pages API. If this workflow does not own the
+    # Pages site it waits forever, so cap it — a doomed step should fail in
+    # minutes, not burn ten and still fail.
+    timeout-minutes: 6
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
@@ -38,6 +42,15 @@ jobs:
 
       - name: Configure Pages
         uses: actions/configure-pages@v5
+        with:
+          # Claims the Pages site for Actions (build_type: workflow).
+          #
+          # Without this, a repository whose Pages source is still "Deploy from
+          # a branch" runs *two* pipelines on every push: the legacy Jekyll
+          # builder and this one. They race for the same environment — the
+          # Jekyll build fails (there is no Jekyll site here) and this deploy
+          # hangs waiting for an environment it does not own.
+          enablement: true
 
       - name: Upload app/
         uses: actions/upload-pages-artifact@v3
