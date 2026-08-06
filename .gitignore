@@ -1,0 +1,15 @@
+# Python (build tooling only)
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Notes
+*.local.md

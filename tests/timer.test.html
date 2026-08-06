@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omnia — timer tests</title>
+<style>
+  body { font: 14px ui-monospace, monospace; padding: 1.5rem; line-height: 1.7; }
+  .pass::before { content: "PASS  "; color: #1f6a42; }
+  .fail::before { content: "FAIL  "; color: #8f2010; }
+  .fail { color: #8f2010; }
+  h1 { font: 600 16px ui-monospace, monospace; }
+  #summary { margin-top: 1rem; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>IntervalTimer</h1>
+<div id="out"></div>
+<div id="summary">running…</div>
+
+<script type="module">
+/*
+  The interval rules are the product spec, so they get tested rather than
+  eyeballed. Real time is replaced with a fake clock and a manually pumped
+  animation frame queue, which makes every assertion exact instead of flaky.
+
+  Open tests/timer.test.html over http (not file://) to run.
+*/
+
+let now = 0;
+let nextFrameId = 1;
+const frames = new Map();
+
+Object.defineProperty(performance, 'now', { value: () => now, configurable: true });
+window.requestAnimationFrame = (cb) => { const id = nextFrameId++; frames.set(id, cb); return id; };
+window.cancelAnimationFrame = (id) => { frames.delete(id); };
+
+/** Advance the fake clock, flushing frame callbacks as a real browser would. */
+function pump(ms, step = 16) {
+  const target = now + ms;
+  while (now < target) {
+    now = Math.min(now + step, target);
+    const due = [...frames.values()];
+    frames.clear();
+    for (const cb of due) cb(now);
+  }
+}
+
+function reset() { now = 0; frames.clear(); }
+
+const results = [];
+const ok = (name, condition, detail = '') => results.push({ name, condition, detail });
+const near = (actual, expected, tol = 120) => Math.abs(actual - expected) <= tol;
+
+const { IntervalTimer, BREAK_SECONDS, URGENT_SECONDS } = await import('../docs/assets/js/timer.js');
+
+const make = (opts = {}) => new IntervalTimer({
+  intervalSeconds: 30, count: 3, continuous: true,
+  onTick: () => {}, onAdvance: () => {}, onFinish: () => {},
+  ...opts,
+});
+
+/* ── 1. Counts down ─────────────────────────────────────────────────── */
+{
+  reset();
+  const t = make();
+  t.start();
+  pump(10_000);
+  ok('counts down in real elapsed time', near(t.remaining, 20_000),
+     `remaining=${Math.round(t.remaining)}ms, expected ~20000`);
+  ok('secondsLeft is 20 after 10s', t.secondsLeft === 20, `got ${t.secondsLeft}`);
+  t.destroy();
+}
+
+/* ── 2. Urgent only in the last five seconds ────────────────────────── */
+{
+  reset();
+  const t = make();
+  t.start();
+  pump(24_000);
+  const notYet = t.isUrgent;
+  pump(1_200);
+  const nowUrgent = t.isUrgent;
+  ok(`not urgent above ${URGENT_SECONDS}s`, notYet === false, `secondsLeft=${t.secondsLeft}`);
+  ok(`urgent at or below ${URGENT_SECONDS}s`, nowUrgent === true, `secondsLeft=${t.secondsLeft}`);
+  t.destroy();
+}
+
+/* ── 3. Continuous ON runs intervals back to back ───────────────────── */
+{
+  reset();
+  const advances = [];
+  const t = make({ continuous: true, count: 3, onAdvance: (i) => advances.push(i) });
+  t.start();
+  pump(30_500);
+  ok('continuous advances with no gate', t.index === 1 && t.phase === 'running',
+     `index=${t.index} phase=${t.phase}`);
+  ok('advance callback fired once', advances.length === 1 && advances[0] === 1,
+     `advances=[${advances}]`);
+  t.destroy();
+}
+
+/* ── 4. Continuous OFF waits on "Ready?" ────────────────────────────── */
+{
+  reset();
+  const t = make({ continuous: false, count: 3 });
+  t.start();
+  pump(30_500);
+  const gated = t.phase === 'awaiting-ready' && t.index === 0;
+  ok('continuous off holds at zero', gated, `phase=${t.phase} index=${t.index}`);
+  ok('clock reads 0 while gated', t.secondsLeft === 0, `got ${t.secondsLeft}`);
+
+  t.resume();
+  ok('Ready? advances to the next exercise',
+     t.index === 1 && t.phase === 'running' && near(t.remaining, 30_000),
+     `index=${t.index} phase=${t.phase} remaining=${Math.round(t.remaining)}`);
+  t.destroy();
+}
+
+/* ── 5. Break is 15s, in the same interface ─────────────────────────── */
+{
+  reset();
+  const t = make();
+  t.start();
+  pump(10_000);
+  t.takeBreak();
+  ok(`break is ${BREAK_SECONDS}s`,
+     t.phase === 'break' && t.secondsLeft === BREAK_SECONDS,
+     `phase=${t.phase} secondsLeft=${t.secondsLeft}`);
+  ok('break does not advance the exercise', t.index === 0, `index=${t.index}`);
+  t.destroy();
+}
+
+/* ── 6. After a break the exercise RESUMES, never restarts ──────────── */
+{
+  reset();
+  const t = make();
+  t.start();
+  pump(10_000);                      // 20s left on the exercise
+  t.takeBreak();
+  pump(15_200);                      // let the break run out
+  ok('exercise resumes where it left off',
+     t.phase === 'running' && near(t.remaining, 20_000, 300),
+     `phase=${t.phase} remaining=${Math.round(t.remaining)}ms, expected ~20000`);
+  ok('resuming does not skip the exercise', t.index === 0, `index=${t.index}`);
+  t.destroy();
+}
+
+/* ── 7. A break taken while gated returns to the gate ───────────────── */
+{
+  reset();
+  const t = make({ continuous: false });
+  t.start();
+  pump(30_500);                      // now awaiting-ready
+  t.takeBreak();
+  pump(15_200);
+  ok('break from the gate returns to the gate, not the next exercise',
+     t.phase === 'awaiting-ready' && t.index === 0,
+     `phase=${t.phase} index=${t.index}`);
+  t.destroy();
+}
+
+/* ── 8. Finishes after the last interval, once ──────────────────────── */
+{
+  reset();
+  let finished = 0;
+  const t = make({ continuous: true, count: 3, onFinish: () => { finished += 1; } });
+  t.start();
+  pump(95_000);
+  ok('finishes after the last interval', finished === 1, `onFinish fired ${finished}×`);
+  ok('phase is finished', t.phase === 'finished', `phase=${t.phase}`);
+  ok('ended on the last exercise', t.index === 2, `index=${t.index}`);
+  t.destroy();
+}
+
+/* ── 9. 45s intervals honoured ──────────────────────────────────────── */
+{
+  reset();
+  const t = make({ intervalSeconds: 45 });
+  t.start();
+  ok('45s interval starts at 45', t.secondsLeft === 45, `got ${t.secondsLeft}`);
+  pump(44_000);
+  ok('45s interval reaches urgent', t.isUrgent === true, `secondsLeft=${t.secondsLeft}`);
+  t.destroy();
+}
+
+/* ── 10. Ring fraction tracks the countdown ─────────────────────────── */
+{
+  reset();
+  const t = make();
+  t.start();
+  pump(15_000);
+  ok('fraction is ~0.5 at the halfway point', near(t.fraction, 0.5, 0.02),
+     `fraction=${t.fraction.toFixed(3)}`);
+  t.destroy();
+}
+
+/* ── Report ─────────────────────────────────────────────────────────── */
+
+const out = document.getElementById('out');
+out.innerHTML = results
+  .map((r) => `<div class="${r.condition ? 'pass' : 'fail'}">${r.name}${
+    r.condition ? '' : ` — ${r.detail}`}</div>`)
+  .join('');
+
+const failed = results.filter((r) => !r.condition).length;
+document.getElementById('summary').textContent =
+  failed === 0
+    ? `ALL PASS — ${results.length} assertions`
+    : `${failed} FAILED of ${results.length}`;
+document.title = failed === 0 ? 'TIMER OK' : `TIMER ${failed} FAILED`;
+</script>
+</body>
+</html>

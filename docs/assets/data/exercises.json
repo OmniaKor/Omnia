@@ -1,0 +1,817 @@
+{
+  "source": "https://github.com/yuhonas/free-exercise-db",
+  "sourceCommit": "b0eed061e1c832b3ed815fbaa4b45b3cdc14df49",
+  "license": "Unlicense (public domain)",
+  "imageBase": "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises",
+  "generatedBy": "tools/build_catalog.py",
+  "exercises": [
+    {
+      "id": "3_4_Sit-Up",
+      "name": "3/4 Sit-Up",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/3_4_Sit-Up/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/3_4_Sit-Up/1.jpg"
+      ],
+      "instructions": [
+        "Lie down on the floor and secure your feet. Your legs should be bent at the knees.",
+        "Place your hands behind or to the side of your head. You will begin with your back on the ground. This will be your starting position.",
+        "Flex your hips and spine to raise your torso toward your knees.",
+        "At the top of the contraction your torso should be perpendicular to the ground. Reverse the motion, going only ¾ of the way down.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Air_Bike",
+      "name": "Air Bike",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Air_Bike/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Air_Bike/1.jpg"
+      ],
+      "instructions": [
+        "Lie flat on the floor with your lower back pressed to the ground. For this exercise, you will need to put your hands beside your head. Be careful however to not strain with the neck as you perform it. Now lift your shoulders into the crunch position.",
+        "Bring knees up to where they are perpendicular to the floor, with your lower legs parallel to the floor. This will be your starting position.",
+        "Now simultaneously, slowly go through a cycle pedal motion kicking forward with the right leg and bringing in the knee of the left leg. Bring your right elbow close to your left knee by crunching to the side, as you breathe out.",
+        "Go back to the initial position as you breathe in.",
+        "Crunch to the opposite side as you cycle your legs and bring closer your left elbow to your right knee and exhale.",
+        "Continue alternating in this manner until all of the recommended repetitions for each side have been completed."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Alternate_Heel_Touchers",
+      "name": "Alternate Heel Touchers",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Alternate_Heel_Touchers/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Alternate_Heel_Touchers/1.jpg"
+      ],
+      "instructions": [
+        "Lie on the floor with the knees bent and the feet on the floor around 18-24 inches apart. Your arms should be extended by your side. This will be your starting position.",
+        "Crunch over your torso forward and up about 3-4 inches to the right side and touch your right heel as you hold the contraction for a second. Exhale while performing this movement.",
+        "Now go back slowly to the starting position as you inhale.",
+        "Now crunch over your torso forward and up around 3-4 inches to the left side and touch your left heel as you hold the contraction for a second. Exhale while performing this movement and then go back to the starting position as you inhale. Now that both heels have been touched, that is considered 1 repetition.",
+        "Continue alternating sides in this manner until all prescribed repetitions are done."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Bent-Knee_Hip_Raise",
+      "name": "Bent-Knee Hip Raise",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Bent-Knee_Hip_Raise/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Bent-Knee_Hip_Raise/1.jpg"
+      ],
+      "instructions": [
+        "Lay flat on the floor with your arms next to your sides.",
+        "Now bend your knees at around a 75 degree angle and lift your feet off the floor by around 2 inches.",
+        "Using your lower abs, bring your knees in towards you as you maintain the 75 degree angle bend in your legs. Continue this movement until you raise your hips off of the floor by rolling your pelvis backward. Breathe out as you perform this portion of the movement. Tip: At the end of the movement your knees will be over your chest.",
+        "Squeeze your abs at the top of the movement for a second and then return to the starting position slowly as you breathe in. Tip: Maintain a controlled motion at all times.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Bottoms_Up",
+      "name": "Bottoms Up",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Bottoms_Up/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Bottoms_Up/1.jpg"
+      ],
+      "instructions": [
+        "Begin by lying on your back on the ground. Your legs should be straight and your arms at your side. This will be your starting position.",
+        "To perform the movement, tuck the knees toward your chest by flexing the hips and knees. Following this, extend your legs directly above you so that they are perpendicular to the ground. Rotate and elevate your pelvis to raise your glutes from the floor.",
+        "After a brief pause, return to the starting position."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Butt_Lift_Bridge",
+      "name": "Butt Lift (Bridge)",
+      "level": "beginner",
+      "primary": [
+        "glutes"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Butt_Lift_Bridge/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Butt_Lift_Bridge/1.jpg"
+      ],
+      "instructions": [
+        "Lie flat on the floor on your back with the hands by your side and your knees bent. Your feet should be placed around shoulder width. This will be your starting position.",
+        "Pushing mainly with your heels, lift your hips off the floor while keeping your back straight. Breathe out as you perform this part of the motion and hold at the top for a second.",
+        "Slowly go back to the starting position as you breathe in."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Butt-Ups",
+      "name": "Butt-Ups",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Butt-Ups/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Butt-Ups/1.jpg"
+      ],
+      "instructions": [
+        "Begin a pushup position but with your elbows on the ground and resting on your forearms. Your arms should be bent at a 90 degree angle.",
+        "Arch your back slightly out rather than keeping your back completely straight.",
+        "Raise your glutes toward the ceiling, squeezing your abs tightly to close the distance between your ribcage and hips. The end result will be that you'll end up in a high bridge position. Exhale as you perform this portion of the movement.",
+        "Lower back down slowly to your starting position as you breathe in. Tip: Don't let your back sag downwards.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Cocoons",
+      "name": "Cocoons",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Cocoons/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Cocoons/1.jpg"
+      ],
+      "instructions": [
+        "Begin by lying on your back on the ground. Your legs should be straight and your arms extended behind your head. This will be your starting position.",
+        "To perform the movement, tuck the knees toward your chest, rotating your pelvis to lift your glutes from the floor. As you do so, flex the spine, bringing your arms back over your head to perform a simultaneous crunch motion.",
+        "After a brief pause, return to the starting position."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Cross-Body_Crunch",
+      "name": "Cross-Body Crunch",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Cross-Body_Crunch/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Cross-Body_Crunch/1.jpg"
+      ],
+      "instructions": [
+        "Lie flat on your back and bend your knees about 60 degrees.",
+        "Keep your feet flat on the floor and place your hands loosely behind your head. This will be your starting position.",
+        "Now curl up and bring your right elbow and shoulder across your body while bring your left knee in toward your left shoulder at the same time. Reach with your elbow and try to touch your knee. Exhale as you perform this movement. Tip: Try to bring your shoulder up towards your knee rather than just your elbow and remember that the key is to contract the abs as you perform the movement; not just to move the elbow.",
+        "Now go back down to the starting position as you inhale and repeat with the left elbow and the right knee.",
+        "Continue alternating in this manner until all prescribed repetitions are done."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Crunch_-_Hands_Overhead",
+      "name": "Crunch - Hands Overhead",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Crunch_-_Hands_Overhead/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Crunch_-_Hands_Overhead/1.jpg"
+      ],
+      "instructions": [
+        "Lie on the floor with your back flat and knees bent with around a 60-degree angle between the hamstrings and the calves.",
+        "Keep your feet flat on the floor and stretch your arms overhead with your palms crossed. This will be your starting position.",
+        "Curl your upper body forward and bring your shoulder blades just off the floor. At all times, keep your arms aligned with your head, neck and shoulder. Don't move them forward from that position. Exhale as you perform this portion of the movement and hold the contraction for a second.",
+        "Slowly lower down to the starting position as you inhale.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Crunches",
+      "name": "Crunches",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Crunches/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Crunches/1.jpg"
+      ],
+      "instructions": [
+        "Lie flat on your back with your feet flat on the ground, or resting on a bench with your knees bent at a 90 degree angle. If you are resting your feet on a bench, place them three to four inches apart and point your toes inward so they touch.",
+        "Now place your hands lightly on either side of your head keeping your elbows in. Tip: Don't lock your fingers behind your head.",
+        "While pushing the small of your back down in the floor to better isolate your abdominal muscles, begin to roll your shoulders off the floor.",
+        "Continue to push down as hard as you can with your lower back as you contract your abdominals and exhale. Your shoulders should come up off the floor only about four inches, and your lower back should remain on the floor. At the top of the movement, contract your abdominals hard and keep the contraction for a second. Tip: Focus on slow, controlled movement - don't cheat yourself by using momentum.",
+        "After the one second contraction, begin to come down slowly again to the starting position as you inhale.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Dead_Bug",
+      "name": "Dead Bug",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Dead_Bug/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Dead_Bug/1.jpg"
+      ],
+      "instructions": [
+        "Begin lying on your back with your hands extended above you toward the ceiling.",
+        "Bring your feet, knees, and hips up to 90 degrees.",
+        "Exhale hard to bring your ribcage down and flatten your back onto the floor, rotating your pelvis up and squeezing your glutes. Hold this position throughout the movement. This will be your starting position.",
+        "Initiate the exercise by extending one leg, straightening the knee and hip to bring the leg just above the ground.",
+        "Maintain the position of your lumbar and pelvis as you perform the movement, as your back is going to want to arch.",
+        "Stay tight and return the working leg to the starting position.",
+        "Repeat on the opposite side, alternating until the set is complete."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Elbow_to_Knee",
+      "name": "Elbow to Knee",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Elbow_to_Knee/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Elbow_to_Knee/1.jpg"
+      ],
+      "instructions": [
+        "Lie on the floor, crossing your right leg across your bent left knee. Clasp your hands behind your head, beginning with your shoulder blades on the ground. This will be your starting position.",
+        "Perform the motion by flexing the spine and rotating your torso to bring the left elbow to the right knee.",
+        "Return to the starting position and repeat the movement for the desired number of repetitions before switching sides."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Flutter_Kicks",
+      "name": "Flutter Kicks",
+      "level": "beginner",
+      "primary": [
+        "glutes"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Flutter_Kicks/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Flutter_Kicks/1.jpg"
+      ],
+      "instructions": [
+        "On a flat bench lie facedown with the hips on the edge of the bench, the legs straight with toes high off the floor and with the arms on top of the bench holding on to the front edge.",
+        "Squeeze your glutes and hamstrings and straighten the legs until they are level with the hips. This will be your starting position.",
+        "Start the movement by lifting the left leg higher than the right leg.",
+        "Then lower the left leg as you lift the right leg.",
+        "Continue alternating in this manner (as though you are doing a flutter kick in water) until you have done the recommended amount of repetitions for each leg. Make sure that you keep a controlled movement at all times. Tip: You will breathe normally as you perform this movement."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Frog_Sit-Ups",
+      "name": "Frog Sit-Ups",
+      "level": "intermediate",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Frog_Sit-Ups/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Frog_Sit-Ups/1.jpg"
+      ],
+      "instructions": [
+        "Lie with your back flat on the floor (or exercise mat) and your legs extended in front of you.",
+        "Now bend at the knees and place your outer thighs by the floor (or mat) as you make the soles of your feet touch each other.",
+        "Now try pushing both soles and bringing them up as near you as possible while you keep the outer thighs on the floor (or at least almost touching it). Tip: In this position your legs should create a diamond shape.",
+        "Now, cross your arms in front of you by touching the opposite shoulders. This will be your starting position.",
+        "As you exhale flatten your lower back to the floor while curling the torso upwards. Tip: This will be like performing the first 1/4 movement of a sit up. Hold at the top position for a second.",
+        "As you inhale, slowly lower back to the starting position.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Jackknife_Sit-Up",
+      "name": "Jackknife Sit-Up",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Jackknife_Sit-Up/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Jackknife_Sit-Up/1.jpg"
+      ],
+      "instructions": [
+        "Lie flat on the floor (or exercise mat) on your back with your arms extended straight back behind your head and your legs extended also. This will be your starting position.",
+        "As you exhale, bend at the waist while simultaneously raising your legs and arms to meet in a jackknife position. Tip: The legs should be extended and lifted at approximately a 35-45 degree angle from the floor and the arms should be extended and parallel to your legs. The upper torso should be off the floor.",
+        "While inhaling, lower your arms and legs back to the starting position.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Janda_Sit-Up",
+      "name": "Janda Sit-Up",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Janda_Sit-Up/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Janda_Sit-Up/1.jpg"
+      ],
+      "instructions": [
+        "Position your body on the floor in the basic sit-up position; knees to a ninety degree angle with feet flat on the floor and arms either crossed over your chest or to the sides. This will be your starting position.",
+        "As you strongly tighten your glutes and hamstrings, fill your lungs with air and in a slow (three to six second count) ascent, slowly exhale. Tip: It is important to tighten the glutes and hamstrings as this will cause the hip flexors to be inactivated in a process called reciprocal inhibition, which basically means that opposite muscles to the contracted ones will relax.",
+        "As you inhale, slowly go back in a controlled manner to the starting position.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Leg_Pull-In",
+      "name": "Leg Pull-In",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Leg_Pull-In/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Leg_Pull-In/1.jpg"
+      ],
+      "instructions": [
+        "Lie on an exercise mat with your legs extended and your hands either palms facing down next to you or under your glutes. Tip: My preference is with the hands next to me. This will be your starting position.",
+        "Bend your knees and pull your upper thighs into your midsection as you breathe out. Continue the motion until your knees are around chest level. Contract your abs as you execute this movement and hold for a second at the top. Tip: As you perform the motion, the lower legs (calves) should always remain parallel to the floor.",
+        "Return to the starting position as you inhale.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Lower_Back_Curl",
+      "name": "Lower Back Curl",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Lower_Back_Curl/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Lower_Back_Curl/1.jpg"
+      ],
+      "instructions": [
+        "Lie on your stomach with your arms out to your sides. This will be your starting position.",
+        "Using your lower back muscles, extend your spine lifting your chest off of the ground. Do not use your arms to push yourself up. Keep your head up during the movement. Repeat for 10-20 repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Mountain_Climbers",
+      "name": "Mountain Climbers",
+      "level": "beginner",
+      "primary": [
+        "quadriceps"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Mountain_Climbers/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Mountain_Climbers/1.jpg"
+      ],
+      "instructions": [
+        "Begin in a pushup position, with your weight supported by your hands and toes. Flexing the knee and hip, bring one leg until the knee is approximately under the hip. This will be your starting position.",
+        "Explosively reverse the positions of your legs, extending the bent leg until the leg is straight and supported by the toe, and bringing the other foot up with the hip and knee flexed. Repeat in an alternating fashion for 20-30 seconds."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Oblique_Crunches",
+      "name": "Oblique Crunches",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Oblique_Crunches/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Oblique_Crunches/1.jpg"
+      ],
+      "instructions": [
+        "Lie flat on the floor with your lower back pressed to the ground. For this exercise, you will need to put one hand beside your head and the other to the side against the floor.",
+        "Make sure your feet are elevated and resting on a flat surface.",
+        "Now lift the shoulder in which your hand is touching your head.",
+        "Simply elevate your shoulder and body upward until you touch your knee. For example, if you have your right hand besides your head, then you want to elevate your body upwards until your right elbow touches your left knee. The same variation can be applied doing the inverse and using your left elbow to touch your right knee.",
+        "After your knee touches your elbow, lower your body until you have reached the starting position.",
+        "Remember to breathe in during the eccentric (lowering) part of the exercise and to breathe out during the concentric (upward) part of the exercise.",
+        "Continue alternating in this manner until all of the recommended repetitions for each side have been completed."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Oblique_Crunches_-_On_The_Floor",
+      "name": "Oblique Crunches - On The Floor",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Oblique_Crunches_-_On_The_Floor/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Oblique_Crunches_-_On_The_Floor/1.jpg"
+      ],
+      "instructions": [
+        "Start out by lying on your right side with your legs lying on top of each other. Make sure your knees are bent a little bit.",
+        "Place your left hand behind your head.",
+        "Once you are in this set position, begin by moving your left elbow up as you would perform a normal crunch except this time the main emphasis is on your obliques.",
+        "Crunch as high as you can, hold the contraction for a second and then slowly drop back down into the starting position.",
+        "Remember to breathe in during the eccentric (lowering) part of the exercise and to breathe out during the concentric (elevation) part of the exercise."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Overhead_Stretch",
+      "name": "Overhead Stretch",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Overhead_Stretch/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Overhead_Stretch/1.jpg"
+      ],
+      "instructions": [
+        "Standing straight up, lace your fingers together and open your palms to the ceiling. Keep your shoulders down as you extend your arms up.",
+        "To create a full torso stretch, pull your tailbone down and stabilize your torso as you do this. Stretch the muscles on both the front and the back of the torso."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Pelvic_Tilt_Into_Bridge",
+      "name": "Pelvic Tilt Into Bridge",
+      "level": "intermediate",
+      "primary": [
+        "lower back"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Pelvic_Tilt_Into_Bridge/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Pelvic_Tilt_Into_Bridge/1.jpg"
+      ],
+      "instructions": [
+        "Lie down with your feet on the floor, heels directly under your knees.",
+        "Lift only your tailbone to the ceiling to stretch your lower back. (Don't lift the entire spine yet.) Pull in your stomach.",
+        "To go into a bridge, lift the entire spine except the neck."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Plank",
+      "name": "Plank",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Plank/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Plank/1.jpg"
+      ],
+      "instructions": [
+        "Get into a prone position on the floor, supporting your weight on your toes and your forearms. Your arms are bent and directly below the shoulder.",
+        "Keep your body straight at all times, and hold this position as long as possible. To increase difficulty, an arm or leg can be raised."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Reverse_Crunch",
+      "name": "Reverse Crunch",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Reverse_Crunch/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Reverse_Crunch/1.jpg"
+      ],
+      "instructions": [
+        "Lie down on the floor with your legs fully extended and arms to the side of your torso with the palms on the floor. Your arms should be stationary for the entire exercise.",
+        "Move your legs up so that your thighs are perpendicular to the floor and feet are together and parallel to the floor. This is the starting position.",
+        "While inhaling, move your legs towards the torso as you roll your pelvis backwards and you raise your hips off the floor. At the end of this movement your knees will be touching your chest.",
+        "Hold the contraction for a second and move your legs back to the starting position while exhaling.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Russian_Twist",
+      "name": "Russian Twist",
+      "level": "intermediate",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Russian_Twist/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Russian_Twist/1.jpg"
+      ],
+      "instructions": [
+        "Lie down on the floor placing your feet either under something that will not move or by having a partner hold them. Your legs should be bent at the knees.",
+        "Elevate your upper body so that it creates an imaginary V-shape with your thighs. Your arms should be fully extended in front of you perpendicular to your torso and with the hands clasped. This is the starting position.",
+        "Twist your torso to the right side until your arms are parallel with the floor while breathing out.",
+        "Hold the contraction for a second and move back to the starting position while breathing out. Now move to the opposite side performing the same techniques you applied to the right side.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Scissor_Kick",
+      "name": "Scissor Kick",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Scissor_Kick/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Scissor_Kick/1.jpg"
+      ],
+      "instructions": [
+        "To begin, lie down with your back pressed against the floor or on an exercise mat (optional). Your arms should be fully extended to the sides with your palms facing down. Note: The arms should be stationary the entire time.",
+        "With a slight bend at the knees, lift your legs up so that your heels are about 6 inches off the ground. This is the starting position.",
+        "Now lift your left leg up to about a 45 degree angle while your right leg is lowered until the heel is about 2-3 inches from the ground.",
+        "Switch movements by raising your right leg up and lowering your left leg. Remember to breathe while performing this exercise.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Seated_Overhead_Stretch",
+      "name": "Seated Overhead Stretch",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Seated_Overhead_Stretch/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Seated_Overhead_Stretch/1.jpg"
+      ],
+      "instructions": [
+        "Sit up straight on an exercise mat.",
+        "Touch the soles of your feet together with your feet six to eight inches in front of your hips.",
+        "Place one hand on the floor beside you and your other hand behind your head.",
+        "Lift your elbow to the ceiling as you incline your torso to the other side. Hold for 10 to 20 seconds, then switch sides."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Side_Bridge",
+      "name": "Side Bridge",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Side_Bridge/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Side_Bridge/1.jpg"
+      ],
+      "instructions": [],
+      "placeholder": false
+    },
+    {
+      "id": "Side_Jackknife",
+      "name": "Side Jackknife",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Side_Jackknife/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Side_Jackknife/1.jpg"
+      ],
+      "instructions": [],
+      "placeholder": false
+    },
+    {
+      "id": "Single_Leg_Glute_Bridge",
+      "name": "Single Leg Glute Bridge",
+      "level": "beginner",
+      "primary": [
+        "glutes"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Single_Leg_Glute_Bridge/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Single_Leg_Glute_Bridge/1.jpg"
+      ],
+      "instructions": [
+        "Lay on the floor with your feet flat and knees bent.",
+        "Raise one leg off of the ground, pulling the knee to your chest. This will be your starting position.",
+        "Execute the movement by driving through the heel, extending your hip upward and raising your glutes off of the ground.",
+        "Extend as far as possible, pause and then return to the starting position."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Sit-Up",
+      "name": "Sit-Up",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Sit-Up/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Sit-Up/1.jpg"
+      ],
+      "instructions": [
+        "Lie down on the floor placing your feet either under something that will not move or by having a partner hold them. Your legs should be bent at the knees.",
+        "Place your hands behind your head and lock them together by clasping your fingers. This is the starting position.",
+        "Elevate your upper body so that it creates an imaginary V-shape with your thighs. Breathe out when performing this part of the exercise.",
+        "Once you feel the contraction for a second, lower your upper body back down to the starting position while inhaling.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Spider_Crawl",
+      "name": "Spider Crawl",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Spider_Crawl/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Spider_Crawl/1.jpg"
+      ],
+      "instructions": [
+        "Begin in a prone position on the floor. Support your weight on your hands and toes, with your feet together and your body straight. Your arms should be bent to 90 degrees. This will be your starting position.",
+        "Initiate the movement by raising one foot off of the ground. Externally rotate the leg and bring the knee toward your elbow, as far forward as possible.",
+        "Return this leg to the starting position and repeat on the opposite side."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Standing_Lateral_Stretch",
+      "name": "Standing Lateral Stretch",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Standing_Lateral_Stretch/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Standing_Lateral_Stretch/1.jpg"
+      ],
+      "instructions": [
+        "Take a slightly wider than hip distance stance with your knees slightly bent.",
+        "Place your right hand on your right hip to support the spine.",
+        "Raise your left arm in a vertical line and place your left hand behind your head. Keep it there as you incline your torso to the right.",
+        "Keep your weight evenly distributed between both legs (don't lean into your left hip). Switch sides."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Superman",
+      "name": "Superman",
+      "level": "beginner",
+      "primary": [
+        "lower back"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Superman/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Superman/1.jpg"
+      ],
+      "instructions": [
+        "To begin, lie straight and face down on the floor or exercise mat. Your arms should be fully extended in front of you. This is the starting position.",
+        "Simultaneously raise your arms, legs, and chest off of the floor and hold this contraction for 2 seconds. Tip: Squeeze your lower back to get the best results from this exercise. Remember to exhale during this movement. Note: When holding the contracted position, you should look like superman when he is flying.",
+        "Slowly begin to lower your arms, legs and chest back down to the starting position while inhaling.",
+        "Repeat for the recommended amount of repetitions prescribed in your program."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Toe_Touchers",
+      "name": "Toe Touchers",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Toe_Touchers/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Toe_Touchers/1.jpg"
+      ],
+      "instructions": [
+        "To begin, lie down on the floor or an exercise mat with your back pressed against the floor. Your arms should be lying across your sides with the palms facing down.",
+        "Your legs should be touching each other. Slowly elevate your legs up in the air until they are almost perpendicular to the floor with a slight bend at the knees. Your feet should be parallel to the floor.",
+        "Move your arms so that they are fully extended at a 45 degree angle from the floor. This is the starting position.",
+        "While keeping your lower back pressed against the floor, slowly lift your torso and use your hands to try and touch your toes. Remember to exhale while perform this part of the exercise.",
+        "Slowly begin to lower your torso and arms back down to the starting position while inhaling. Remember to keep your arms straight out pointing towards your toes.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "Tuck_Crunch",
+      "name": "Tuck Crunch",
+      "level": "beginner",
+      "primary": [
+        "abs"
+      ],
+      "images": [
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Tuck_Crunch/0.jpg",
+        "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@b0eed061e1c832b3ed815fbaa4b45b3cdc14df49/exercises/Tuck_Crunch/1.jpg"
+      ],
+      "instructions": [
+        "To begin, lie down on the floor or an exercise mat with your back pressed against the floor. Your arms should be lying across your sides with the palms facing down.",
+        "Your legs should be crossed by wrapping one ankle around the other. Slowly elevate your legs up in the air until your thighs are perpendicular to the floor with a slight bend at the knees. Note: Your knees and toes should be parallel to the floor as opposed to the thighs.",
+        "Move your arms from the floor and cross them so they are resting on your chest. This is the starting position.",
+        "While keeping your lower back pressed against the floor, slowly lift your torso. Remember to exhale while perform this part of the exercise.",
+        "Slowly begin to lower your torso back down to the starting position while inhaling.",
+        "Repeat for the recommended amount of repetitions."
+      ],
+      "placeholder": false
+    },
+    {
+      "id": "placeholder-bird-dog",
+      "name": "Bird Dog",
+      "level": "beginner",
+      "primary": [
+        "abs",
+        "lower back"
+      ],
+      "instructions": [
+        "Start on all fours, hands under shoulders and knees under hips.",
+        "Reach one arm forward and the opposite leg back until both are level.",
+        "Keep your hips square — do not let them tip.",
+        "Return under control and alternate sides."
+      ],
+      "images": [],
+      "placeholder": true
+    },
+    {
+      "id": "placeholder-hollow-body-hold",
+      "name": "Hollow Body Hold",
+      "level": "intermediate",
+      "primary": [
+        "abs"
+      ],
+      "instructions": [
+        "Lie on your back with your arms overhead and your legs straight.",
+        "Press your lower back flat into the floor.",
+        "Lift your shoulders and legs a few inches, making a shallow banana shape.",
+        "Hold, and keep breathing. Lower your legs if your back arches."
+      ],
+      "images": [],
+      "placeholder": true
+    },
+    {
+      "id": "placeholder-plank-shoulder-taps",
+      "name": "Plank Shoulder Taps",
+      "level": "intermediate",
+      "primary": [
+        "abs"
+      ],
+      "instructions": [
+        "Start in a high plank with your hands under your shoulders.",
+        "Set your feet wide for a steadier base.",
+        "Tap one hand to the opposite shoulder without letting your hips rock.",
+        "Alternate hands, staying square the whole time."
+      ],
+      "images": [],
+      "placeholder": true
+    },
+    {
+      "id": "placeholder-v-up",
+      "name": "V-Up",
+      "level": "intermediate",
+      "primary": [
+        "abs"
+      ],
+      "instructions": [
+        "Lie flat with your arms overhead and your legs straight.",
+        "Lift your arms and legs at the same time, reaching for your toes.",
+        "Your body should form a V, balanced on your hips.",
+        "Lower under control, and repeat."
+      ],
+      "images": [],
+      "placeholder": true
+    },
+    {
+      "id": "placeholder-windshield-wipers",
+      "name": "Windshield Wipers",
+      "level": "intermediate",
+      "primary": [
+        "abs"
+      ],
+      "instructions": [
+        "Lie on your back with your arms out wide and your legs up over your hips.",
+        "Keeping your shoulders down, lower both legs to one side.",
+        "Stop before your legs touch the floor, then sweep to the other side.",
+        "Move slowly — the control is the point."
+      ],
+      "images": [],
+      "placeholder": true
+    }
+  ]
+}

@@ -1,0 +1,132 @@
+{
+  "_comment": "Hand-written. Every id must exist in exercises.json — run `python tools/build_catalog.py --check` after editing. Names are placeholders (Phase 7 renames them); `focus` stays to one or two words on purpose.",
+  "routines": [
+    {
+      "id": "routine-1",
+      "name": "Routine #1",
+      "focus": "Foundations",
+      "level": "beginner",
+      "exercises": [
+        "Crunches",
+        "Plank",
+        "Reverse_Crunch",
+        "Side_Bridge",
+        "Air_Bike",
+        "placeholder-bird-dog",
+        "Leg_Pull-In",
+        "Superman",
+        "Toe_Touchers",
+        "Butt_Lift_Bridge",
+        "Dead_Bug",
+        "Seated_Overhead_Stretch"
+      ]
+    },
+    {
+      "id": "routine-2",
+      "name": "Routine #2",
+      "focus": "Obliques",
+      "level": "intermediate",
+      "exercises": [
+        "Oblique_Crunches_-_On_The_Floor",
+        "Russian_Twist",
+        "Cross-Body_Crunch",
+        "Side_Bridge",
+        "Side_Jackknife",
+        "Elbow_to_Knee",
+        "placeholder-windshield-wipers",
+        "Alternate_Heel_Touchers",
+        "Air_Bike",
+        "Spider_Crawl",
+        "Plank",
+        "Standing_Lateral_Stretch"
+      ]
+    },
+    {
+      "id": "routine-3",
+      "name": "Routine #3",
+      "focus": "Lower abs",
+      "level": "intermediate",
+      "exercises": [
+        "Leg_Pull-In",
+        "Reverse_Crunch",
+        "Flutter_Kicks",
+        "Scissor_Kick",
+        "Bent-Knee_Hip_Raise",
+        "Bottoms_Up",
+        "placeholder-hollow-body-hold",
+        "Cocoons",
+        "Butt_Lift_Bridge",
+        "Single_Leg_Glute_Bridge",
+        "Plank",
+        "Overhead_Stretch"
+      ]
+    },
+    {
+      "id": "routine-4",
+      "name": "Routine #4",
+      "focus": "Burner",
+      "level": "expert",
+      "exercises": [
+        "Mountain_Climbers",
+        "Air_Bike",
+        "placeholder-v-up",
+        "Plank",
+        "placeholder-plank-shoulder-taps",
+        "Russian_Twist",
+        "Spider_Crawl",
+        "Butt-Ups",
+        "Jackknife_Sit-Up",
+        "Flutter_Kicks",
+        "Cross-Body_Crunch",
+        "Sit-Up",
+        "Superman",
+        "placeholder-hollow-body-hold",
+        "Seated_Overhead_Stretch"
+      ]
+    },
+    {
+      "id": "routine-5",
+      "name": "Routine #5",
+      "focus": "Short set",
+      "level": "beginner",
+      "exercises": [
+        "Crunches",
+        "Plank",
+        "Air_Bike",
+        "Reverse_Crunch",
+        "Side_Bridge",
+        "Mountain_Climbers",
+        "placeholder-bird-dog",
+        "Leg_Pull-In",
+        "Superman",
+        "Overhead_Stretch"
+      ]
+    },
+    {
+      "id": "routine-6",
+      "name": "Routine #6",
+      "focus": "Long set",
+      "level": "intermediate",
+      "exercises": [
+        "3_4_Sit-Up",
+        "Crunch_-_Hands_Overhead",
+        "Tuck_Crunch",
+        "Frog_Sit-Ups",
+        "Janda_Sit-Up",
+        "Toe_Touchers",
+        "Oblique_Crunches",
+        "Cross-Body_Crunch",
+        "Russian_Twist",
+        "Leg_Pull-In",
+        "Scissor_Kick",
+        "Bent-Knee_Hip_Raise",
+        "Plank",
+        "Side_Bridge",
+        "Superman",
+        "Pelvic_Tilt_Into_Bridge",
+        "placeholder-hollow-body-hold",
+        "Seated_Overhead_Stretch"
+      ]
+    }
+  ]
+}

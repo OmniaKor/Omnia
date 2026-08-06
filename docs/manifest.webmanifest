@@ -1,0 +1,20 @@
+{
+  "name": "Omnia — daily core",
+  "short_name": "Omnia",
+  "description": "Ten minutes of core work, every day.",
+  "start_url": "./#/routines",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#faf4eb",
+  "theme_color": "#faf4eb",
+  "categories": ["health", "fitness"],
+  "icons": [
+    {
+      "src": "assets/img/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

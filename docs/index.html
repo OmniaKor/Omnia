@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="omnia">
+<head>
+<meta charset="utf-8">
+<!--
+  viewport-fit=cover lets the page paint under a notch; the safe-area insets in
+  omnia.css put the content back inside it. maximum-scale is deliberately not
+  set — capping zoom locks out anyone who needs it, and the layout does not
+  need the help.
+-->
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Omnia — ten minutes of core, daily</title>
+<meta name="description" content="Ten minutes of core work, every day. Pick a routine, follow the timer, keep the calendar green.">
+<meta name="theme-color" content="#faf4eb" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1014" media="(prefers-color-scheme: dark)">
+<meta name="color-scheme" content="light dark">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Omnia">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="assets/img/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="assets/img/icon.svg">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Noto+Serif:wght@300;400&display=swap">
+
+<!--
+  Buildless by design: Tailwind compiles in the browser and daisyUI ships as a
+  plain stylesheet, so `git push` is the entire deploy. See CLAUDE.md for why
+  that trade is the right one for this project.
+-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daisyui@5/daisyui.css">
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<link rel="stylesheet" href="assets/css/omnia.css">
+
+<script>
+  /* Stamp the theme before first paint. Reading it later means a flash of the
+     wrong ground colour, which is far more noticeable on cream than on white. */
+  (function () {
+    try {
+      var saved = JSON.parse(localStorage.getItem('omnia.v1') || '{}');
+      var pref = (saved.prefs && saved.prefs.theme) || 'auto';
+      var dark = pref === 'dark' || (pref === 'auto' &&
+        window.matchMedia('(prefers-color-scheme: dark)').matches);
+      document.documentElement.dataset.theme = dark ? 'omnia-dark' : 'omnia';
+    } catch (e) { /* first visit, or storage blocked — the default stands */ }
+  })();
+</script>
+</head>
+
+<body>
+<a class="skip-link" href="#view">Skip to content</a>
+
+<div class="app-shell">
+
+  <!-- ── Masthead ────────────────────────────────────────────────────────
+       Hidden during a workout (body.is-playing) so the timer owns the screen.
+       On a phone that is the difference between a readable clock and a
+       scrolling one. -->
+  <header class="site-head">
+    <div class="site-head__bar">
+      <p class="type-label">Daily core · 10 minutes</p>
+      <button id="theme-toggle" class="theme-toggle" type="button"
+              aria-label="Switch between light and dark">
+        <span aria-hidden="true">◐</span>
+      </button>
+    </div>
+
+    <h1 class="wordmark">Omnia</h1>
+
+    <figure class="hero">
+      <img src="assets/img/hero.svg" alt="" width="1200" height="420" decoding="async">
+    </figure>
+  </header>
+
+  <!-- ── Body: nav rail + view ──────────────────────────────────────────── -->
+  <div class="app-body">
+
+    <nav class="rail" aria-label="Sections">
+      <a class="rail__link" href="#/routines" data-section="routines">
+        <span class="rail__num">01</span>
+        <span class="rail__label">Routines</span>
+      </a>
+      <a class="rail__link" href="#/calendar" data-section="calendar">
+        <span class="rail__num">02</span>
+        <span class="rail__label">Calendar</span>
+      </a>
+    </nav>
+
+    <main id="view" class="view" tabindex="-1">
+      <p class="loading">Loading…</p>
+    </main>
+
+  </div>
+
+  <footer class="site-foot">
+    <p>created by: Justin Li and Owen Zhang Track c/o 2026.</p>
+  </footer>
+
+</div>
+
+<!-- Bottom tabs, phones only. Mirrors the rail. -->
+<nav class="tabbar" aria-label="Sections">
+  <a class="tabbar__link" href="#/routines" data-section="routines">
+    <svg viewBox="0 0 24 24" aria-hidden="true" class="tabbar__icon">
+      <path d="M4 6h16M4 12h16M4 18h10" fill="none" stroke="currentColor"
+            stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <span>Routines</span>
+  </a>
+  <a class="tabbar__link" href="#/calendar" data-section="calendar">
+    <svg viewBox="0 0 24 24" aria-hidden="true" class="tabbar__icon">
+      <rect x="3.5" y="5" width="17" height="15" rx="2" fill="none"
+            stroke="currentColor" stroke-width="1.6"/>
+      <path d="M3.5 9.5h17M8 3.5v3M16 3.5v3" fill="none" stroke="currentColor"
+            stroke-width="1.6" stroke-linecap="round"/>
+    </svg>
+    <span>Calendar</span>
+  </a>
+</nav>
+
+<!-- Live region for timer state. Screen readers get the transitions the
+     colour change communicates to everyone else. -->
+<p id="live" class="sr-only" role="status" aria-live="polite"></p>
+
+<script type="module" src="assets/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omnia — store tests</title>
+<style>
+  body { font: 14px ui-monospace, monospace; padding: 1.5rem; line-height: 1.7; }
+  .pass::before { content: "PASS  "; color: #1f6a42; }
+  .fail::before { content: "FAIL  "; color: #8f2010; }
+  .fail { color: #8f2010; }
+  h1 { font: 600 16px ui-monospace, monospace; }
+  #summary { margin-top: 1rem; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>store — calendar rules</h1>
+<div id="out"></div>
+<div id="summary">running…</div>
+
+<script type="module">
+/*
+  The day-colour rules are a product decision, not an implementation detail, so
+  they are pinned here. In particular: green beats yellow. Quit once, finish
+  something later, and the day is green.
+
+  store.js reads localStorage once at import, so the fixture is seeded first
+  and the module is imported dynamically afterwards.
+*/
+
+localStorage.setItem('omnia.v1', JSON.stringify({
+  version: 1,
+  prefs: { intervalSeconds: 45, continuous: true, theme: 'dark' },
+  sessions: [
+    // Quit, then finished the same routine later — the spec's green case.
+    { id: 'a', routineId: 'routine-1', status: 'quit',      localDate: '2026-08-01', exercisesDone: 3 },
+    { id: 'b', routineId: 'routine-1', status: 'completed', localDate: '2026-08-01', exercisesDone: 12 },
+    // Quit only.
+    { id: 'c', routineId: 'routine-2', status: 'quit',      localDate: '2026-08-02', exercisesDone: 5 },
+    // Finished a different routine after quitting one.
+    { id: 'd', routineId: 'routine-1', status: 'quit',      localDate: '2026-08-03', exercisesDone: 1 },
+    { id: 'e', routineId: 'routine-3', status: 'completed', localDate: '2026-08-03', exercisesDone: 12 },
+    // Plain finish, and a repeat of routine-1 on another day.
+    { id: 'f', routineId: 'routine-1', status: 'completed', localDate: '2026-08-05', exercisesDone: 12 },
+  ],
+}));
+
+const results = [];
+const ok = (name, condition, detail = '') => results.push({ name, condition, detail });
+
+const store = await import('../docs/assets/js/store.js');
+
+/* ── Day colours ────────────────────────────────────────────────────── */
+
+ok('quit then completed → green (green wins)',
+   store.dayStatus('2026-08-01') === 'green', store.dayStatus('2026-08-01'));
+
+ok('quit only → yellow',
+   store.dayStatus('2026-08-02') === 'yellow', store.dayStatus('2026-08-02'));
+
+ok('quit one routine, finish another → green',
+   store.dayStatus('2026-08-03') === 'green', store.dayStatus('2026-08-03'));
+
+ok('nothing logged → red',
+   store.dayStatus('2026-08-04') === 'red', store.dayStatus('2026-08-04'));
+
+ok('completed → green',
+   store.dayStatus('2026-08-05') === 'green', store.dayStatus('2026-08-05'));
+
+/* ── History ────────────────────────────────────────────────────────── */
+
+{
+  const dates = store.completionDates('routine-1');
+  ok('completion dates are the completed ones only, newest first',
+     JSON.stringify(dates) === JSON.stringify(['2026-08-05', '2026-08-01']),
+     JSON.stringify(dates));
+
+  ok('a routine only ever quit has no completion dates',
+     store.completionDates('routine-2').length === 0,
+     JSON.stringify(store.completionDates('routine-2')));
+}
+
+ok('sessionsOn returns every attempt that day',
+   store.sessionsOn('2026-08-01').length === 2,
+   `${store.sessionsOn('2026-08-01').length}`);
+
+ok('firstActiveDate is the earliest logged day',
+   store.firstActiveDate() === '2026-08-01', store.firstActiveDate());
+
+/* ── localDate ──────────────────────────────────────────────────────── */
+
+/* The bug this guards against: toISOString() converts to UTC first, so a
+   workout finished late in the evening lands on tomorrow's calendar square
+   for anyone west of London. */
+{
+  const lateEvening = new Date(2026, 7, 5, 23, 30, 0);   // 5 Aug, 11:30pm local
+  ok('localDate uses the local day, not UTC',
+     store.localDate(lateEvening) === '2026-08-05', store.localDate(lateEvening));
+
+  const earlyMorning = new Date(2026, 7, 6, 0, 15, 0);   // 6 Aug, 12:15am local
+  ok('localDate rolls over at local midnight',
+     store.localDate(earlyMorning) === '2026-08-06', store.localDate(earlyMorning));
+
+  const singleDigit = new Date(2026, 0, 3, 12, 0, 0);
+  ok('localDate zero-pads month and day',
+     store.localDate(singleDigit) === '2026-01-03', store.localDate(singleDigit));
+}
+
+/* ── Prefs ──────────────────────────────────────────────────────────── */
+
+{
+  const prefs = store.getPrefs();
+  ok('prefs load from storage',
+     prefs.intervalSeconds === 45 && prefs.continuous === true && prefs.theme === 'dark',
+     JSON.stringify(prefs));
+
+  store.setPrefs({ intervalSeconds: 30 });
+  ok('setPrefs patches without clobbering the rest',
+     store.getPrefs().intervalSeconds === 30 && store.getPrefs().theme === 'dark',
+     JSON.stringify(store.getPrefs()));
+}
+
+/* ── Append ─────────────────────────────────────────────────────────── */
+
+{
+  const before = store.allSessions().length;
+  const record = store.addSession({
+    routineId: 'routine-9', status: 'completed',
+    intervalSeconds: 30, continuous: false, exercisesDone: 10,
+    startedAt: new Date().toISOString(),
+  });
+
+  ok('addSession appends', store.allSessions().length === before + 1,
+     `${before} → ${store.allSessions().length}`);
+  ok('addSession stamps a local date', /^\d{4}-\d{2}-\d{2}$/.test(record.localDate),
+     record.localDate);
+  ok('addSession stamps today', record.localDate === store.localDate(), record.localDate);
+  ok('addSession keeps history intact',
+     store.dayStatus('2026-08-02') === 'yellow', 'earlier days unchanged');
+}
+
+/* ── Report ─────────────────────────────────────────────────────────── */
+
+localStorage.removeItem('omnia.v1');
+
+document.getElementById('out').innerHTML = results
+  .map((r) => `<div class="${r.condition ? 'pass' : 'fail'}">${r.name}${
+    r.condition ? '' : ` — got ${r.detail}`}</div>`)
+  .join('');
+
+const failed = results.filter((r) => !r.condition).length;
+document.getElementById('summary').textContent =
+  failed === 0
+    ? `ALL PASS — ${results.length} assertions`
+    : `${failed} FAILED of ${results.length}`;
+</script>
+</body>
+</html>
