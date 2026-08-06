@@ -233,6 +233,21 @@ class Audio {
     this.vibrate([45, 60, 45, 60, 110]);
   }
 
+  /**
+   * The user confirmed a quit.
+   *
+   * Two low notes falling to a close. Quiet, brief, and pointedly not a
+   * failure sound — no buzzer, no minor-key sting. Quitting a workout is a
+   * normal thing a fifteen-year-old does on a bad day, and the app has no
+   * business editorialising about it. The calendar already records what
+   * happened; the sound only needs to say "stopped".
+   */
+  quit() {
+    this._note({ freq: 293.66, duration: 0.18, gain: 0.13, type: 'sine' });
+    this._note({ freq: 220.00, duration: 0.42, gain: 0.12, type: 'sine', delay: 0.13 });
+    this.vibrate(55);
+  }
+
   /* ── Haptics ──────────────────────────────────────────────────────── */
 
   /**

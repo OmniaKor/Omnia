@@ -112,6 +112,7 @@ export function renderPlayer(view, routine) {
 
   els.quitDialog.querySelector('#quit-confirm').addEventListener('click', () => {
     els.quitDialog.close();
+    audio.quit();
     addSession({
       routineId: routine.id,
       status: 'quit',
