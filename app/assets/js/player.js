@@ -221,6 +221,7 @@ function showExercise(els, exercises, index) {
 
 function finish(view, routine, timer, startedAt) {
   releaseWakeLock();
+  audio.finish();
   announce('Routine finished');
 
   view.innerHTML = `

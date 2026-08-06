@@ -210,6 +210,29 @@ class Audio {
     this.vibrate([25, 40, 25]);
   }
 
+  /**
+   * The routine is finished.
+   *
+   * The only cue in the app that is properly *musical* — a four-note A-major
+   * pentatonic arpeggio, A4 · C#5 · E5 · A5, each note ringing longer than the
+   * last. Everything else is a signal; this one is a small reward, and it is
+   * the sound a user hears once a day for months. It has to still be pleasant
+   * on the sixtieth listen, which is why it resolves cleanly to the octave
+   * rather than ending on a bright unresolved interval.
+   */
+  finish() {
+    const notes = [
+      { freq: 440.00, delay: 0.00, duration: 0.34 },  // A4
+      { freq: 554.37, delay: 0.11, duration: 0.40 },  // C#5
+      { freq: 659.25, delay: 0.22, duration: 0.50 },  // E5
+      { freq: 880.00, delay: 0.34, duration: 0.95 },  // A5 — resolves
+    ];
+    for (const note of notes) {
+      this._note({ ...note, gain: 0.17, type: 'sine' });
+    }
+    this.vibrate([45, 60, 45, 60, 110]);
+  }
+
   /* ── Haptics ──────────────────────────────────────────────────────── */
 
   /**
