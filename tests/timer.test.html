@@ -51,7 +51,8 @@ const results = [];
 const ok = (name, condition, detail = '') => results.push({ name, condition, detail });
 const near = (actual, expected, tol = 120) => Math.abs(actual - expected) <= tol;
 
-const { IntervalTimer, BREAK_SECONDS, URGENT_SECONDS } = await import('../app/assets/js/timer.js');
+const { IntervalTimer, BREAK_SECONDS, URGENT_SECONDS, TRANSITION_SECONDS } =
+  await import('../app/assets/js/timer.js');
 
 const make = (opts = {}) => new IntervalTimer({
   intervalSeconds: 30, count: 3, continuous: true,
@@ -85,15 +86,31 @@ const make = (opts = {}) => new IntervalTimer({
   t.destroy();
 }
 
-/* ── 3. Continuous ON runs intervals back to back ───────────────────── */
+/* ── 3. Continuous ON takes a 3s transition, then advances ──────────── */
 {
   reset();
   const advances = [];
   const t = make({ continuous: true, count: 3, onAdvance: (i) => advances.push(i) });
   t.start();
   pump(30_500);
-  ok('continuous advances with no gate', t.index === 1 && t.phase === 'running',
-     `index=${t.index} phase=${t.phase}`);
+
+  ok('continuous holds in the transition rather than jumping straight on',
+     t.phase === 'transition' && t.index === 0,
+     `phase=${t.phase} index=${t.index}`);
+  ok(`transition counts ${TRANSITION_SECONDS}s`, t.secondsLeft === TRANSITION_SECONDS,
+     `secondsLeft=${t.secondsLeft}`);
+  ok('no advance while the transition runs', advances.length === 0,
+     `advances=[${advances}]`);
+
+  // Nothing is running to stash and come back to, so Break has to be inert.
+  t.takeBreak();
+  ok('break is a no-op during the transition', t.phase === 'transition',
+     `phase=${t.phase}`);
+
+  pump(2_600);
+  ok('advances when the transition ends',
+     t.index === 1 && t.phase === 'running' && near(t.remaining, 30_000, 300),
+     `index=${t.index} phase=${t.phase} remaining=${Math.round(t.remaining)}`);
   ok('advance callback fired once', advances.length === 1 && advances[0] === 1,
      `advances=[${advances}]`);
   t.destroy();
@@ -163,12 +180,32 @@ const make = (opts = {}) => new IntervalTimer({
 {
   reset();
   let finished = 0;
+  // Three 30s intervals with a 3s transition between each pair: 96s, not 90s.
   const t = make({ continuous: true, count: 3, onFinish: () => { finished += 1; } });
   t.start();
-  pump(95_000);
+  pump(100_000);
   ok('finishes after the last interval', finished === 1, `onFinish fired ${finished}×`);
   ok('phase is finished', t.phase === 'finished', `phase=${t.phase}`);
   ok('ended on the last exercise', t.index === 2, `index=${t.index}`);
+  t.destroy();
+}
+
+/* ── 9. The last exercise is never followed by a transition ─────────── */
+{
+  reset();
+  let finished = 0;
+  const phases = new Set();
+  const t = make({
+    continuous: true,
+    count: 1,
+    onTick: (s) => phases.add(s.phase),
+    onFinish: () => { finished += 1; },
+  });
+  t.start();
+  pump(31_000);
+  ok('a routine ends rather than counting into an exercise that does not exist',
+     finished === 1 && !phases.has('transition'),
+     `finished=${finished} phases=[${[...phases]}]`);
   t.destroy();
 }
 

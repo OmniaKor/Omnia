@@ -30,6 +30,18 @@ let lastCueSecond = null;
 let lastCuePhase = null;
 
 /**
+ * Which exercise the big figure is currently showing, and which one the "Next"
+ * chip is.
+ *
+ * paint() runs every animation frame, and writing innerHTML rebuilds every
+ * `<img>` inside it — the pictures would restart their load sixty times a
+ * second and flicker. So the markup is only touched when the answer actually
+ * changes. This is the same rule the builder follows for its filter.
+ */
+let shownFigureIndex = null;
+let shownNextIndex = null;
+
+/**
  * The gate between tapping Start and the clock running.
  *
  * Two jobs. It shows the first exercise so nobody is thirty seconds into a
@@ -78,6 +90,8 @@ export function renderPlayer(view, routine) {
 function startRun(view, routine) {
   lastCueSecond = null;
   lastCuePhase = null;
+  shownFigureIndex = null;
+  shownNextIndex = null;
   audio.unlock();
 
   const { intervalSeconds, continuous } = getPrefs();
@@ -91,6 +105,7 @@ function startRun(view, routine) {
     state: view.querySelector('#clock-state'),
     arc: view.querySelector('#clock-arc'),
     figure: view.querySelector('#figure'),
+    lead: view.querySelector('#ex-lead'),
     name: view.querySelector('#ex-name'),
     next: view.querySelector('#ex-next'),
     progress: view.querySelector('#progress'),
@@ -112,7 +127,8 @@ function startRun(view, routine) {
     count: exercises.length,
     onTick: (s) => paint(els, s, exercises),
     onAdvance: (index) => {
-      showExercise(els, exercises, index);
+      // The figure is already showing this exercise — the preview put it there
+      // seconds ago. paint() will keep it, so nothing reloads on the handover.
       audio.advance();
       announce(exercises[index].name);
     },
@@ -121,7 +137,6 @@ function startRun(view, routine) {
 
   active = { timer, view };
 
-  showExercise(els, exercises, 0);
   paint(els, timer.snapshot(), exercises);
   timer.start();
   requestWakeLock();
@@ -195,6 +210,8 @@ function startRun(view, routine) {
 function paint(els, snapshot, exercises) {
   els.time.textContent = clockText(snapshot.secondsLeft);
 
+  const phaseChanged = lastCuePhase !== snapshot.phase;
+
   cueSecond(snapshot);
   cuePhase(lastCuePhase, snapshot.phase);
   lastCuePhase = snapshot.phase;
@@ -204,17 +221,24 @@ function paint(els, snapshot, exercises) {
 
   els.clock.classList.toggle('is-urgent', snapshot.isUrgent);
   els.clock.classList.toggle('is-break', snapshot.onBreak);
+  els.clock.classList.toggle('is-preview', snapshot.isPreview);
 
   if (snapshot.onBreak) {
     els.state.textContent = 'Break';
     els.breakBtn.textContent = 'End break';
   } else {
-    els.state.textContent = snapshot.phase === 'awaiting-ready' ? 'Paused' : 'Go';
+    els.state.textContent = stateLabel(snapshot.phase);
     els.breakBtn.textContent = 'Break';
   }
 
+  // A break interrupts an exercise, so there has to be one to interrupt. In the
+  // three-second gap there is nothing running to stash and come back to.
+  els.breakBtn.disabled = snapshot.phase === 'transition';
+
   // The "Ready?" gate only ever appears when continuous is off.
   els.gate.hidden = snapshot.phase !== 'awaiting-ready';
+
+  paintFigure(els, snapshot, exercises, phaseChanged);
 
   els.progress.textContent =
     `${String(snapshot.index + 1).padStart(2, '0')} / ` +
@@ -222,6 +246,84 @@ function paint(els, snapshot, exercises) {
 
   const done = snapshot.index + (snapshot.phase === 'finished' ? 1 : snapshot.fraction);
   els.bar.style.width = `${(done / exercises.length) * 100}%`;
+}
+
+function stateLabel(phase) {
+  if (phase === 'awaiting-ready') return 'Paused';
+  if (phase === 'transition') return 'Get set';
+  return 'Go';
+}
+
+/**
+ * Decide which exercise the screen is showing, and show it.
+ *
+ * While the clock counts toward an exercise the user has not started — the
+ * three-second transition, or the hold on "Ready?" — the big figure is the
+ * *upcoming* movement, so they can get into position instead of reading the
+ * one they have just finished.
+ *
+ * The "Next" chip is hidden for exactly that stretch. Two previews on screen at
+ * once is the confusing case: the picture would be the next exercise and the
+ * chip the one after it, both labelled as what is coming.
+ */
+function paintFigure(els, snapshot, exercises, phaseChanged) {
+  const last = exercises.length - 1;
+  const previewing = snapshot.isPreview;
+
+  // Preview looks one ahead — clamped, though a preview should never be
+  // reachable on the final exercise: the run finishes instead.
+  const figureIndex = previewing
+    ? Math.min(snapshot.index + 1, last)
+    : snapshot.index;
+
+  if (figureIndex !== shownFigureIndex) {
+    shownFigureIndex = figureIndex;
+    const exercise = exercises[figureIndex];
+
+    // The moving figure, not a still. A single frame of a sit-up does not show
+    // anyone what a sit-up is.
+    els.figure.innerHTML = exerciseFigure(exercise, {
+      className: 'player__img',
+      sizeClass: 'player__ph',
+      eager: true,
+    });
+    els.name.textContent = exercise.name;
+  }
+
+  els.lead.hidden = !previewing;
+
+  // Hide rather than empty: emptying would drop the chip out of the layout and
+  // shift the clock every time the run reaches zero.
+  els.next.hidden = previewing;
+
+  if (!previewing) {
+    const nextIndex = snapshot.index + 1;
+    if (nextIndex !== shownNextIndex) {
+      shownNextIndex = nextIndex;
+      paintNextChip(els, exercises[nextIndex]);
+    }
+  }
+
+  // Say the upcoming movement once, when the preview opens — screen reader
+  // users get the same warning the picture gives everyone else.
+  if (phaseChanged && previewing) {
+    announce(`Up next: ${exercises[figureIndex].name}`);
+  }
+}
+
+function paintNextChip(els, next) {
+  // What is coming, with a picture. Knowing the next movement is what lets
+  // someone set up for it during the last few seconds instead of after them.
+  els.next.innerHTML = next
+    ? `<span class="next-up">
+         ${exerciseImage(next, {
+           className: 'next-up__thumb', sizeClass: 'next-up__thumb',
+         })}
+         <span class="next-up__text">
+           <span class="type-label">Next</span><br>${esc(next.name)}
+         </span>
+       </span>`
+    : '<span class="next-up next-up--last">Last one</span>';
 }
 
 /**
@@ -267,33 +369,6 @@ function cuePhase(previous, next) {
 
   // Continuous mode never reaches this phase — there is no gate to announce.
   if (next === 'awaiting-ready') audio.gate();
-}
-
-function showExercise(els, exercises, index) {
-  const exercise = exercises[index];
-  const next = exercises[index + 1];
-
-  // The moving figure, not a still. A single frame of a sit-up does not show
-  // anyone what a sit-up is.
-  els.figure.innerHTML = exerciseFigure(exercise, {
-    className: 'player__img',
-    sizeClass: 'player__ph',
-    eager: true,
-  });
-  els.name.textContent = exercise.name;
-
-  // What is coming, with a picture. Knowing the next movement is what lets
-  // someone set up for it during the last few seconds instead of after them.
-  els.next.innerHTML = next
-    ? `<span class="next-up">
-         ${exerciseImage(next, {
-           className: 'next-up__thumb', sizeClass: 'next-up__thumb',
-         })}
-         <span class="next-up__text">
-           <span class="type-label">Next</span><br>${esc(next.name)}
-         </span>
-       </span>`
-    : '<span class="next-up next-up--last">Last one</span>';
 }
 
 /* ── Finish ───────────────────────────────────────────────────────────── */
@@ -357,7 +432,8 @@ function shell(routine, exercises, intervalSeconds, continuous) {
 
       <div class="player__body">
         <div class="player__figure">
-          <div id="figure"></div>
+          <p class="player__lead type-label" id="ex-lead" hidden>Up next</p>
+          <div id="figure" class="player__frame"></div>
           <h2 class="player__name" id="ex-name"></h2>
           <p class="player__next" id="ex-next"></p>
         </div>

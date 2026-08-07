@@ -1,7 +1,7 @@
 /**
  * store.js — the only thing in Omnia that persists.
  *
- * One localStorage key, one shape. Phase 9 syncs this same shape to Supabase,
+ * One localStorage key, one shape. Phase 12 syncs this same shape to Supabase,
  * so the field names here are the field names there and the migration is a
  * copy rather than a translation.
  */
@@ -150,7 +150,7 @@ export function completionDates(routineId) {
  * Stored unresolved — `exercises` is a list of ids, and `customExercises`
  * holds any movements the user invented, scoped to this routine. Resolution
  * against the catalog happens in catalog.js, so the stored shape stays a
- * plain record that Phase 9 can send to Supabase unchanged.
+ * plain record that Phase 12 can send to Supabase unchanged.
  */
 export function getCustomRoutines() {
   return state.customRoutines.map((routine) => ({ ...routine }));

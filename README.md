@@ -83,6 +83,6 @@ The generated file is committed, so nobody needs Python to deploy.
 Tailwind 4 and daisyUI 5, loaded from a CDN — no `npm install`, no bundler. The
 Pages workflow uploads `app/` verbatim; it compiles nothing. Python is a
 build-time tool only; GitHub Pages runs no server code. Supabase arrives in
-Phase 9 and is reached from the browser, so Pages stays sufficient.
+Phase 12 and is reached from the browser, so Pages stays sufficient.
 
 See [ROADMAP.md](ROADMAP.md) for what's next.

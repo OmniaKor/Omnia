@@ -7,7 +7,7 @@
  *
  *   · intervals are 30s or 45s, fixed before the routine starts
  *   · the last 5 seconds are urgent
- *   · continuous on  → intervals run back to back
+ *   · continuous on  → a 3s transition, then the next interval
  *   · continuous off → stop at zero and wait for "Ready?"
  *   · break is 15s, and afterwards the interval RESUMES rather than restarting
  */
@@ -15,7 +15,18 @@
 export const BREAK_SECONDS = 15;
 export const URGENT_SECONDS = 5;
 
-/** @typedef {'idle'|'running'|'awaiting-ready'|'break'|'finished'} Phase */
+/**
+ * The gap continuous mode takes between two exercises.
+ *
+ * Continuous used to mean *no* gap at all. In practice that put the user on
+ * the floor in the wrong position: the clock was already counting the next
+ * movement while they were still getting up from the last one. Three seconds
+ * is enough to move and not enough to rest — the run still feels unbroken,
+ * which is the point of the setting.
+ */
+export const TRANSITION_SECONDS = 3;
+
+/** @typedef {'idle'|'running'|'transition'|'awaiting-ready'|'break'|'finished'} Phase */
 
 export class IntervalTimer {
   /**
@@ -96,8 +107,15 @@ export class IntervalTimer {
 
   /** 0 → just started, 1 → done. Drives the ring. */
   get fraction() {
-    const total = this.phase === 'break' ? BREAK_SECONDS * 1000 : this.intervalMs;
+    const total = this._phaseTotalMs();
     return total === 0 ? 0 : 1 - this.remaining / total;
+  }
+
+  /** How long the current phase runs for, so the ring depletes over it. */
+  _phaseTotalMs() {
+    if (this.phase === 'break') return BREAK_SECONDS * 1000;
+    if (this.phase === 'transition') return TRANSITION_SECONDS * 1000;
+    return this.intervalMs;
   }
 
   /** Last five seconds of an exercise interval — never during a break. */
@@ -114,6 +132,11 @@ export class IntervalTimer {
       fraction: this.fraction,
       isUrgent: this.isUrgent,
       onBreak: this.phase === 'break',
+
+      // Both phases where the clock is counting toward an exercise the user is
+      // not doing yet — which is exactly when the screen should be showing them
+      // that exercise rather than the one they just finished.
+      isPreview: this.phase === 'transition' || this.phase === 'awaiting-ready',
     };
   }
 
@@ -162,6 +185,12 @@ export class IntervalTimer {
       return;
     }
 
+    // The transition has run its three seconds; the next exercise starts now.
+    if (this.phase === 'transition') {
+      this._advance();
+      return;
+    }
+
     const isLast = this.index >= this.count - 1;
     if (isLast) {
       this.phase = 'finished';
@@ -171,12 +200,26 @@ export class IntervalTimer {
     }
 
     if (this.continuous) {
-      this._advance();
+      this._beginTransition();
     } else {
       // Hold at zero until the user taps "Ready?".
       this.phase = 'awaiting-ready';
       this.onTick(this.snapshot());
     }
+  }
+
+  /**
+   * The three seconds between one exercise and the next in continuous mode.
+   *
+   * Only ever entered when there IS a next exercise — the last interval goes
+   * straight to finished, because counting the user into a movement that does
+   * not exist would be a lie.
+   */
+  _beginTransition() {
+    this.phase = 'transition';
+    this.remaining = TRANSITION_SECONDS * 1000;
+    this.onTick(this.snapshot());
+    this._loop();
   }
 
   _advance() {

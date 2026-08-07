@@ -752,10 +752,21 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
 
 /* ─── 7. Player ─────────────────────────────────────────────────────── */
 
+/* One screen, never two.
+
+   `height`, not `min-height`: the player must not be scrollable. Someone
+   face-down in a plank cannot scroll to find the clock, and a page that can
+   scroll will get nudged out of position by a stray palm. Everything inside
+   shrinks to fit instead — see .player__body — and `overflow: hidden` is the
+   backstop for the phone small enough that it still doesn't.
+
+   `dvh` rather than `vh` because iOS Safari counts its own toolbar in `vh`,
+   which is exactly how the controls end up under the browser chrome. */
 .player {
   display: flex;
   flex-direction: column;
-  min-height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  height: calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  overflow: hidden;
   padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
   /* Nothing in here should be draggable or selectable — a stray text
      selection during a workout is pure friction. */
@@ -809,59 +820,96 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
   transition: width 0.3s;
 }
 
+/* The figure gets whatever the clock and the controls do not need — that is
+   what `minmax(0, 1fr)` buys. The `0` floor is the load-bearing half: a grid
+   row defaults to `auto`, which refuses to shrink below its contents, and one
+   unshrinkable row is all it takes to push the Quit button off a small phone. */
 .player__body {
   flex: 1 1 auto;
+  min-height: 0;
   display: grid;
   grid-template-columns: 1fr;
-  gap: 1.25rem;
-  align-content: center;
-  padding: 1.25rem 0;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-content: stretch;
+  padding: 0.5rem 0;
 }
 @media (width >= 56rem) {
   /* Clock beside the exercise, as specified. */
   .player__body {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, 1fr);
     gap: 2.5rem;
     align-items: center;
   }
 }
 
-.player__figure { text-align: center; }
+.player__figure {
+  text-align: center;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.3rem;
+}
 
-/* An explicit ratio, because the two frames are stacked and the box can no
-   longer be sized by whichever image happens to load first. Without it the
-   layout jumps as the second frame arrives. */
+/* Sized by its box, not by its contents — the box is what shrinks on a short
+   screen, and the picture follows it down.
+
+   This also keeps the reason the old explicit ratio existed: the two frames of
+   a moving figure are stacked, so without a height from somewhere the layout
+   jumped as the second frame arrived. Now the height comes from the flex row. */
+.player__frame {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: grid;
+  width: 100%;
+}
 .player__img {
   width: 100%;
-  aspect-ratio: 4 / 3;
-  max-height: 34vh;
+  height: 100%;
+  min-height: 0;
   object-fit: cover;
   border-radius: var(--radius-box);
   background: var(--color-base-100);
 }
-.player__ph { width: 100%; height: 34vh; }
+.player__ph { width: 100%; height: 100%; }
+
+/* "Up next" — only on screen while the clock is counting toward an exercise
+   the user has not started yet. */
+.player__lead {
+  margin: 0;
+  color: var(--color-accent);
+  flex: none;
+}
 
 .player__name {
   font-family: "Noto Serif", Georgia, serif;
   font-weight: 300;
-  font-size: clamp(1.5rem, 6vw, 2.6rem);
+  font-size: clamp(1.25rem, 5.5vw, 2.6rem);
   letter-spacing: -0.02em;
   line-height: 1.1;
-  margin: 0.85rem 0 0;
+  margin: 0.4rem 0 0;
   text-align: center;
+  flex: none;
 }
 .player__next {
-  margin: 0.35rem 0 0;
+  margin: 0.3rem 0 0;
   text-align: center;
   color: var(--color-secondary);
   font-size: 0.78rem;
+  flex: none;
 }
 
-/* The clock. Ring + digits, both driven by the same fraction. */
+/* The clock. Ring + digits, both driven by the same fraction.
+
+   The `dvh` term is the one that keeps the run on a single screen: sized off
+   width alone, the ring is 62% of a narrow phone and still 232px tall, which
+   is most of a short screen before the exercise has been drawn at all. */
 .clock { display: grid; place-items: center; position: relative; }
 .clock__svg {
-  width: min(62vw, 17rem);
-  height: min(62vw, 17rem);
+  width: min(62vw, 17rem, 34dvh);
+  height: min(62vw, 17rem, 34dvh);
   transform: rotate(-90deg);        /* 12 o'clock start */
 }
 .clock__track { fill: none; stroke: color-mix(in srgb, var(--color-base-content) 12%, transparent); }
@@ -909,6 +957,12 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
 .clock.is-break .clock__arc { stroke: var(--color-secondary); }
 .clock.is-break .clock__time { color: var(--color-secondary); }
 
+/* The three-second transition, and the hold on "Ready?". Same treatment as a
+   break on purpose — both are time the user is not working, and the difference
+   between them is already spelled out under the digits. */
+.clock.is-preview .clock__arc { stroke: var(--color-secondary); }
+.clock.is-preview .clock__time { color: var(--color-secondary); }
+
 .player__controls {
   flex: none;
   display: grid;
@@ -916,6 +970,21 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
   gap: 0.6rem;
 }
 .player__controls .btn-omnia { padding: 0.9rem 1rem; }
+
+/* Break is meaningless during the transition — there is no interval running to
+   stash and resume. Dimmed rather than removed, so the row does not reflow. */
+.player__controls .btn-omnia[disabled] { opacity: 0.35; }
+
+/* Short phones — an SE in portrait is 667px, and Safari's chrome takes a bite
+   out of that. Give the exercise the room by taking it off the furniture. */
+@media (height <= 46rem) {
+  .player__top { padding: 0.4rem 0; }
+  .clock__time { font-size: clamp(2rem, 11vw, 3.25rem); }
+  .clock__state { margin-top: 0.25rem; }
+  .player__name { font-size: clamp(1.1rem, 5vw, 1.5rem); }
+  .player__controls .btn-omnia { padding: 0.7rem 1rem; }
+  .player__body { gap: 0.5rem; padding: 0.25rem 0; }
+}
 
 /* "Ready?" — the gate between intervals when continuous is off. It covers
    the clock rather than sitting beside it, because at arm's length on a
@@ -1069,6 +1138,7 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
 
 .start-gate {
   flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1078,13 +1148,24 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
   padding: 1rem 0;
 }
 
+/* Shrinks with the screen like the player's own figure does. `dvh`, not `vh`,
+   or iOS Safari's toolbar pushes Start off the bottom. */
 .start-gate__figure {
   width: min(100%, 30rem);
   aspect-ratio: 4 / 3;
-  max-height: 42vh;
+  min-height: 0;
+  max-height: min(42dvh, 20rem);
   object-fit: cover;
   border-radius: var(--radius-box);
   background: var(--color-base-100);
+}
+
+.start-gate .player__name,
+.start-gate .player__next { flex: none; }
+
+@media (height <= 46rem) {
+  .start-gate { padding: 0.25rem 0; gap: 0.35rem; }
+  .start-gate__go { margin-top: 0.75rem; padding: 0.85rem 1.5rem; }
 }
 
 .start-gate__go {

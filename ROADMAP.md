@@ -17,16 +17,22 @@ in two:
 |---|---|---|
 | HTML / CSS / JS / Tailwind / DaisyUI | In the browser | GitHub Pages |
 | Python (`tools/build_catalog.py`) | **Build time**, on a laptop | Never shipped |
-| Flask | Optional local preview + optional self-host later | Phase 8 |
-| Supabase | In the browser via `@supabase/supabase-js` | Phase 9 |
+| Claude API | In the browser, with the **user's own** key | Phase 8 |
+| Flask | Optional local preview + optional self-host later | Phase 11 |
+| Supabase | In the browser via `@supabase/supabase-js` | Phase 12 |
 
 This is why the server phases sit at the end, which is also the order asked for:
 functionality first, server last. It is not a compromise — Supabase is reached from
-the browser directly, so **Omnia never needs Flask in production.** Phase 8 exists
+the browser directly, so **Omnia never needs Flask in production.** Phase 11 exists
 only for people who would rather self-host than use Supabase.
 
-Until Phase 9, all user data lives in `localStorage`. That means it is per-device
-and survives refreshes but not a new phone. Phase 9 is what fixes that.
+Phase 8 is the one place this gets uncomfortable, and it is worth saying plainly:
+importing a routine from a video needs a model, a model needs a key, and a key in
+a static site is public. The answer is that the key belongs to the user and the
+feature is optional — see the phase for why that is the only shape that fits here.
+
+Until Phase 12, all user data lives in `localStorage`. That means it is per-device
+and survives refreshes but not a new phone. Phase 12 is what fixes that.
 
 ---
 
@@ -42,9 +48,12 @@ and survives refreshes but not a new phone. Phase 9 is what fixes that.
 | 5 | Mobile polish & PWA | ✅ Done |
 | 6 | Sound & haptics | ✅ Done |
 | 7 | Routine builder | ✅ Done (naming still open) |
-| 8 | Flask API (optional self-host) | ⬜ Planned |
-| 9 | Supabase — accounts & sync | ⬜ Planned |
-| 10 | Social & streaks | ⬜ Someday |
+| 8 | Import a routine from a video + timed breaks | ⬜ Planned |
+| 9 | Sound & music, second pass | ⬜ Planned |
+| 10 | The marshmallow — streak incentive | ⬜ Planned |
+| 11 | Flask API (optional self-host) | ⬜ Planned |
+| 12 | Supabase — accounts & sync | ⬜ Planned |
+| 13 | Social & streaks | ⬜ Someday |
 
 ---
 
@@ -96,8 +105,11 @@ The screen a user actually spends ten minutes on.
 - [x] One exercise at a time, beside a large stopwatch
 - [x] Interval counts **down** from 30s or 45s
 - [x] **Final 5 seconds turn red** — number, ring, and all
-- [x] **Continuous on** → intervals run back-to-back, no gap
+- [x] **Continuous on** → a 3s transition, then the next interval starts itself.
+      Originally no gap at all; changed because landing mid-movement with the
+      clock already running is not "continuous", it is late.
 - [x] **Continuous off** → timer pauses at 0 and waits on a **"Ready?"** button
+- [x] Both gaps preview the **upcoming** exercise, and only that one
 - [x] **Break** → 15s break in the same interface, then the exercise timer resumes
       exactly where it left off
 - [x] **Quit** → confirmation dialog first; only on confirm does the routine stop and
@@ -124,6 +136,9 @@ Mobile is the primary target, not an adaptation.
 - [x] Phone-first layout; sidebars collapse to a bottom tab bar
 - [x] All controls ≥ 44px touch targets
 - [x] `100dvh` so iOS Safari's toolbar can't clip the timer
+- [x] **The player is exactly one screen and never scrolls.** Someone in a plank
+      cannot scroll to find the clock. The figure shrinks to absorb the
+      difference; verified with no overflow from 320×568 up to iPad
 - [x] Safe-area insets for notches and home indicators
 - [x] No accidental zoom, text-select, or pull-to-refresh during a workout
 - [x] `manifest.webmanifest` — installs to the home screen
@@ -175,9 +190,200 @@ there is currently no way to detect it from a web app.
 - [ ] Photos for user-added exercises
 - [ ] Replace the remaining `[placeholder]` cards with real images
 
-## Phase 8 — Flask API (optional self-host) ⬜
+## Phase 8 — Import a routine from a video + timed breaks ⬜
 
-Only for self-hosting. **Pages users skip straight to Phase 9.**
+Paste a YouTube link, let a model read the workout out of it, and get back a
+custom routine — exercises in order, with the breaks the video actually takes.
+
+### The honest constraint
+
+This is the first feature that cannot be answered by a file on disk, and it
+breaks the rule at the top of this document in two places:
+
+1. **Reading the video needs a fetch Pages can't make.** A browser cannot pull
+   YouTube captions directly — no CORS headers, and the captions endpoint needs
+   the video owner's OAuth. So the page cannot get the transcript by itself.
+2. **Calling a model needs a key.** Any key committed to `app/` is public the
+   moment it deploys, and a public key is a stranger's bill.
+
+Both are solved without adding a server, but the solution has to be deliberate:
+
+- **The key is the user's, not ours.** They paste their own Anthropic API key
+  once; it lives in `localStorage` beside their prefs and never leaves the
+  device except to `api.anthropic.com`. Requests go direct from the browser with
+  `anthropic-dangerous-direct-browser-access: true`. This is the only shape that
+  works on Pages, and it means **import is opt-in for the handful of users who
+  want it** — never a gate on the two features that already work.
+- **The fetch happens on Anthropic's side, not ours.** The `web_fetch` server
+  tool retrieves URLs already present in the conversation, so the pasted link is
+  fetched server-side and the CORS problem never arises. No proxy, no Worker,
+  nothing new to host.
+
+**Validate the fetch before building the UI.** Whether `web_fetch` returns a
+YouTube page with enough of the transcript to parse is the single assumption the
+whole phase rests on, and it is one `curl` to find out. If it comes back as an
+empty player shell, the fallback is a textarea: the user pastes the transcript or
+description themselves, everything downstream is identical, and the link field
+comes back when there's a way to make it work.
+
+### Import
+
+- [ ] Settings pane: paste an API key, test it, clear it. Plain text about where
+      it is stored and what it costs — this is someone's money.
+- [ ] Paste a link → `web_fetch` reads the video → the model returns exercises in
+      order, with per-exercise seconds and the breaks between them
+- [ ] `claude-opus-5`, called from `app/assets/js/import.js`. Ask for
+      `output_config.format` with a JSON schema matching a stored routine, so the
+      response is a routine rather than prose to be parsed
+- [ ] Match each extracted name against the catalog first; anything with no match
+      becomes a `customExercises` entry on the routine, exactly as the builder's
+      "add your own" already does. **No new data shape** — import writes what
+      Phase 7 already reads.
+- [ ] Land in the builder, not the player. The model will get things wrong, and
+      the edit screen that fixes them already exists.
+- [ ] Every failure is a sentence, not a stack trace: no key, bad key, rate
+      limited, no captions, nothing that looks like a workout
+- [ ] Nothing about import may break the app for someone who never uses it — no
+      key means the button explains itself, and that is the end of it
+
+### Timed breaks mid-routine
+
+Phase 3's break is a button the user presses when they need air. This is a
+different thing: a break the routine *plans*, sitting between two exercises.
+
+- [ ] Reserved ids `break-15` / `break-30` / `break-45` in a routine's
+      `exercises` list. `catalog.js` resolves them ahead of the catalog into a
+      synthetic record, which keeps `exercises` a flat list of strings and keeps
+      the Phase 12 Supabase migration a copy rather than a translation.
+- [ ] Builder: insert a break between any two exercises, reorder it with the same
+      arrows, delete it
+- [ ] Player runs it in the same interface as everything else. It counts down,
+      the last 5 seconds are red, and it obeys Continuous — a scheduled break is
+      an interval, not an interruption.
+- [ ] **The Break button keeps its old meaning.** Pressing it during a scheduled
+      break is still "end this early", and afterwards the run resumes where it
+      left off. Two kinds of break, one interface, no new controls.
+- [ ] Duration estimate counts a break's real seconds instead of an interval, and
+      is still clamped to the 5–15 min promise
+- [ ] `exercisesDone` counts exercises. A break is not a rep, and the calendar
+      must not think otherwise.
+
+## Phase 9 — Sound & music, second pass ⬜
+
+Phase 6 proved the audio engine works. This is the pass that makes it feel like a
+product instead of a set of beeps: the interface gets a voice, and the workout
+gets music that moves with it.
+
+### The mp3 question, decided up front
+
+"Exercise music" is the one item here that could quietly cost the project its
+best property. A real track is a file: it makes the repo binary, it has to be
+cached by the service worker for offline to keep working, and — the part that
+actually ends the argument — **two high schoolers cannot ship someone else's
+music.** Licensing is not a detail to sort out later; it is the whole decision.
+
+So: **still synthesised, still no mp3.** The rule from Phase 6 holds. What
+changes is ambition — the Phase 6 pad was one slow A-minor drone, and this phase
+turns the same `OscillatorNode` machinery into something with a pulse. If a real
+soundtrack is ever genuinely wanted, it is a deliberate reversal of a rule that
+is currently load-bearing, and it belongs in **Not doing** until someone has an
+answer for the licence.
+
+### Interface sound
+
+- [ ] Cues for the interface, not just the timer: tab change, routine selected,
+      toggle flipped, save, delete. Quiet, short, and clearly a family with the
+      Phase 6 cues rather than a second sound palette bolted on.
+- [ ] One shared envelope and scale so every sound in the app is related. Two
+      unrelated palettes is what makes an app sound cheap.
+- [ ] Distinct cue for a scheduled break starting (Phase 8) versus a tapped one —
+      same interface, but the user should be able to hear which happened
+- [ ] Nothing new may be loud. The app is used at 6am in a bedroom.
+
+### Exercise music
+
+- [ ] Music that tracks the run instead of looping under it: a steadier pulse
+      during an exercise, something calmer during a break, and a resolve on the
+      last interval so the end is audible before it arrives
+- [ ] Tempo follows the interval — 30s and 45s should not feel like the same
+      workout
+- [ ] Two or three moods the user picks on the preview screen, alongside the
+      existing Sound and Music toggles. Not a settings page.
+- [ ] Music ducks under cues. A countdown tick that gets buried is a bug.
+
+### Rules this pass must not break
+
+These are from Phase 6 and are the reason the audio has never broken a workout:
+
+- [ ] Every sound synthesised. **No audio files.**
+- [ ] Nothing in `audio.js` throws into the timer — every path degrades to silence
+- [ ] `AudioContext` created on a user gesture only, never on a hashchange
+- [ ] Cues gated on the second *changing*, because `paint()` runs every frame
+- [ ] Phase cues stay exclusive: one transition, one sound
+- [ ] Haptics suppressed when muted
+- [ ] Music is a toggle, and off means silent — not quieter
+
+## Phase 10 — The marshmallow: streak incentive ⬜
+
+A marshmallow that lives on the calendar screen and is happy while the streak is
+alive. Miss too long and it gets sad. Come back and it cheers up.
+
+### Say the quiet part first
+
+This is a guilt mechanic, and the app it is modelled on is famous for exactly
+that. The users are high schoolers, and the behaviour being pressured is
+exercise — which is a place where "you have disappointed the little guy" can stop
+being funny. It is still worth building, because the calendar is already the
+motivation and this gives it a face. But three limits are part of the feature,
+not softeners bolted on afterwards:
+
+- **Sad, never punishing.** It looks disappointed. It does not shame, guilt-trip,
+  scold, or beg.
+- **A missed day never erases history.** Nothing burns down, nothing resets to
+  zero visually. The calendar keeps every green square it earned, because those
+  were days the user actually trained.
+- **It never nags off-screen.** No push notifications, no badge counts. It is
+  there when the app is opened, and silent otherwise.
+
+If it ever reads as mean, the feature is wrong and the fix is the mascot, not the
+user.
+
+### Streak
+
+- [ ] Streak computed from `sessions`, folded by `localDate` — **the same fold
+      the calendar already does.** One source of truth; a second streak counter
+      that can disagree with the squares is a bug generator.
+- [ ] `localDate`, never `finishedAt`. An 11pm workout keeps the streak for that
+      day even after UTC rolls over — this is the same trap documented in the
+      data model, and it is easy to walk back into here.
+- [ ] Only `completed` counts. A quit day is yellow on the calendar and is not a
+      streak day.
+- [ ] Current streak and longest streak, both derived at read time. Nothing new
+      persisted — `sessions` already holds everything.
+
+### The marshmallow
+
+- [ ] Drawn as SVG, like the placeholder art. The repo stays text-only and it
+      works offline for free.
+- [ ] Three states — happy, uncertain, sad — driven by days since the last
+      completed workout. Sad takes more than one missed day; one skipped Tuesday
+      is not a crisis.
+- [ ] A small reaction on finishing a routine, seen once on the completion
+      screen. This is the reward, so it is the only place it is allowed to be big.
+- [ ] Lives on the calendar screen. It does **not** appear during the player —
+      nothing gets between the user and the clock.
+- [ ] `prefers-reduced-motion` respected: states still change, motion does not
+- [ ] It can be turned off, and turning it off leaves the streak numbers intact.
+      Somebody will find it annoying and they should not have to leave.
+- [ ] Warm cream palette, brick accent, same hand as the rest of the app —
+      not a sticker dropped onto someone else's design
+
+**Note for Phase 13:** streak *calculation* lands here, not there. What stays in
+Social & streaks is the social half — friends, teams, sharing.
+
+## Phase 11 — Flask API (optional self-host) ⬜
+
+Only for self-hosting. **Pages users skip straight to Phase 12.**
 
 - [ ] Flask app factory + blueprints, mirroring Body-Shop's layout
 - [ ] SQLite locally, Postgres in production; Alembic migrations
@@ -188,7 +394,7 @@ Only for self-hosting. **Pages users skip straight to Phase 9.**
 - [ ] CORS for the Pages origin
 - [ ] Deployable to Render, like Body-Shop
 
-**SQL schema sketch** (shared with Phase 9):
+**SQL schema sketch** (shared with Phase 12):
 
 ```sql
 create table completions (
@@ -209,7 +415,7 @@ create index on completions (user_id, local_date);
 even when UTC has already rolled over — deriving it server-side would paint the wrong
 calendar square for anyone west of London.
 
-## Phase 9 — Supabase: accounts & sync ⬜
+## Phase 12 — Supabase: accounts & sync ⬜
 
 The real goal. Reached from the browser, so **GitHub Pages is still enough** — no
 Flask, no server to pay for.
@@ -227,9 +433,11 @@ Flask, no server to pay for.
 - [ ] Conflict rule: last-write-wins per `(user_id, routine_id, finished_at)`
 - [ ] Anonymous use stays supported — an account is optional, never a gate
 
-## Phase 10 — Social & streaks ⬜
+## Phase 13 — Social & streaks ⬜
 
-- [ ] Streak counter, longest streak
+Streak *calculation* ships in Phase 10 with the marshmallow. What is left here is
+the social half.
+
 - [ ] Personal bests, total minutes
 - [ ] Add friends; see their streak, never their data
 - [ ] Team view for the track team

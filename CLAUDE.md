@@ -26,7 +26,7 @@ If a change needs a server to answer a request, it cannot ship on Pages. So:
 - **Ships to the browser:** HTML, CSS, JS, Tailwind, DaisyUI
 - **Runs at build time only:** `tools/build_catalog.py`. Its output is committed;
   nobody needs Python to deploy.
-- **Later, optional:** Flask (Phase 8, self-host only), Supabase (Phase 9, called
+- **Later, optional:** Flask (Phase 11, self-host only), Supabase (Phase 12, called
   from the browser — so Pages stays sufficient)
 
 **Do not add a runtime Python dependency to `app/`.** It will 404 on Pages.
@@ -134,8 +134,19 @@ These came from the product owner directly. Changing one is a product decision.
 **Timer**
 - Intervals are **30s or 45s**, chosen *before* the routine starts, never mid-run
 - The **last 5 seconds are red**
-- **Continuous ON** → intervals run back-to-back with no gap
+- **Continuous ON** → a **3s transition** between exercises, then the next one
+  starts on its own. It used to mean no gap at all; that put people on the floor
+  in the wrong position, with the clock already counting a movement they had not
+  got into yet. Three seconds is enough to move and not enough to rest.
 - **Continuous OFF** → stop at 0, wait for a **"Ready?"** button
+- **Both gaps show the exercise that is coming**, not the one just finished —
+  big figure, and the small "Next" chip is hidden while they do. Two previews on
+  screen at once is the confusing case: the picture would be the next movement
+  and the chip the one after it, both captioned as what comes next.
+- The figure **does not reload at the handover**. It is already showing the
+  right exercise, so `paint()` leaves it alone — see `shownFigureIndex`.
+- **Break is unavailable during the 3s transition.** There is no running
+  interval to stash and resume, which is all a break does.
 - **Break** is **15s**, uses the *same* interface, and afterwards the exercise timer
   **resumes where it left off** — it does not restart the interval
 - **Quit** always confirms first. Only on confirm does it stop and return to preview.
@@ -254,7 +265,7 @@ so don't.
 
 `sessions` is append-only. The calendar folds it per day; it never rewrites history.
 
-Phase 9 syncs this shape to Supabase with the same field names, so the migration is a
+Phase 12 syncs this shape to Supabase with the same field names, so the migration is a
 copy rather than a translation.
 
 ---
@@ -294,7 +305,7 @@ happens; it does not build, bundle, or run Python.
 
 **There is no `app.py` and should not be one.** `serve.py` is a stdlib static
 server for development only. Omnia has no backend — adding a Flask entry point at
-the root would imply otherwise. Phase 8's optional API gets its own entry point
+the root would imply otherwise. Phase 11's optional API gets its own entry point
 when it exists.
 
 ---
