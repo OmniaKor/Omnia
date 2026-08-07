@@ -16,6 +16,7 @@ import { renderList, renderPreview } from './routines.js';
 import { renderPlayer, teardown } from './player.js';
 import { renderCalendar } from './calendar.js';
 import { renderBuilder } from './builder.js';
+import { mountRank, refreshRank } from './rank.js';
 import { getPrefs, setPrefs } from './store.js';
 import { audio } from './audio.js';
 import { esc } from './ui.js';
@@ -38,6 +39,10 @@ function route() {
   if (section !== 'play') teardown();
 
   markActive(section === 'calendar' ? 'calendar' : 'routines');
+
+  // Recomputed per navigation: finishing a routine returns here through the
+  // router, so this is where a new rank becomes visible.
+  refreshRank();
 
   try {
     // Recomputed per navigation: custom routines are created, edited and
@@ -134,6 +139,7 @@ matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => {
 
 async function boot() {
   applyTheme();
+  mountRank();
 
   try {
     catalog = await loadCatalog();

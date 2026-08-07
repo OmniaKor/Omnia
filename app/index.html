@@ -63,7 +63,7 @@
            finished, minor climbs by one every time a prompt changes something.
            See CLAUDE.md → Versioning; this element is the only place it lives. -->
       <p class="type-label">Daily core · 10 minutes
-        <span class="site-head__version" id="version">· v7.07</span>
+        <span class="site-head__version" id="version">· v7.08</span>
       </p>
       <button id="theme-toggle" class="theme-toggle" type="button"
               aria-label="Switch between light and dark">
@@ -74,7 +74,18 @@
     <h1 class="wordmark">Omnia</h1>
 
     <figure class="hero">
-      <img src="assets/img/hero.svg" alt="" width="1200" height="420" decoding="async">
+      <!-- The frame shrink-wraps the artwork so the badge's percentage offsets
+           resolve against the image box, not the figure's own padding. -->
+      <div class="hero__frame">
+        <img src="assets/img/hero.svg" alt="" width="1200" height="420" decoding="async">
+        <!-- Starts hidden and rank.js reveals it: with scripting broken the
+             masthead should look as it always did, not show a stuck B. -->
+        <button class="rank" id="rank" type="button" aria-expanded="false" hidden>
+          <img class="rank__art" id="rank-art" src="assets/img/streak/b.webp"
+               alt="" width="400" height="400" decoding="async">
+        </button>
+      </div>
+      <p class="rank__detail" id="rank-detail" hidden></p>
     </figure>
   </header>
 

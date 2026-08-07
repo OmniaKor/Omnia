@@ -18,6 +18,9 @@ const EMPTY = {
     // the audio context, so this can never surprise someone on page load.
     soundMuted: false,
     musicEnabled: true,
+    // The masthead consistency badge. Somebody will find it annoying and
+    // should not have to leave over it; hiding it leaves the numbers intact.
+    streakIcon: true,
   },
   sessions: [],
   customRoutines: [],
