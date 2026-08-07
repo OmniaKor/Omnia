@@ -12,8 +12,10 @@
  * nothing, and it buries the streak they do have.
  */
 
-import { allSessions, dayStatus, firstActiveDate, localDate, sessionsOn } from './store.js';
+import { allSessions, dayStatus, firstActiveDate, getPrefs, localDate,
+         sessionsOn, setPrefs } from './store.js';
 import { streakState } from './streak.js';
+import { refreshRank } from './rank.js';
 import { esc, prettyDate } from './ui.js';
 
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -45,6 +47,11 @@ export function renderCalendar(view, { routines }) {
       <div class="section-head">
         <h2 class="type-display">Calendar</h2>
         <p class="type-label">${streakLabel()}</p>
+        ${getPrefs().streakIcon === false
+          ? `<p class="type-quiet" style="margin:0.35rem 0 0">
+               <button class="rank__hide" type="button" id="rank-show">Show consistency rank</button>
+             </p>`
+          : ''}
       </div>
 
       <div class="cal-layout">
@@ -86,6 +93,14 @@ export function renderCalendar(view, { routines }) {
     view.querySelector('#next').addEventListener('click', () => {
       cursor = new Date(year, month + 1, 1);
       draw();
+    });
+
+    // Optional chaining because the link is only in the markup while the
+    // badge is hidden.
+    view.querySelector('#rank-show')?.addEventListener('click', () => {
+      setPrefs({ streakIcon: true });
+      refreshRank();
+      draw();          // redraw to drop the link now the badge is back
     });
 
     view.querySelectorAll('[data-date]').forEach((cell) => {
