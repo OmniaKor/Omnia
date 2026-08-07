@@ -181,6 +181,8 @@ there is currently no way to detect it from a web app.
       calendar, because those were days the user actually trained
 - [x] Live duration estimate, clamped to the same 5–15 min promise
 - [x] Sticky save bar on phones — the catalog is 43 rows deep
+- [x] The list stops at 8 rows behind **"View N more"**, so "+ Add your own
+      exercise" is on the first screen instead of 2,500px below it
 
 **Still open:**
 
@@ -253,7 +255,9 @@ on screen and never write it down cannot be imported at all.
       offers to set the 30s/45s interval to match what the video used
 - [x] Any YouTube link in the pasted text is kept, so the routine points home
 - [x] Reached from **Routines → "Import routine from YouTube video"**
-- [x] `tests/importer.test.html` — 47 assertions over the worked example, line
+- [x] **You name it.** The first prose line was tried as a title and it is almost
+      never one — it is "Workout", or the channel's tagline. Review asks instead
+- [x] `tests/importer.test.html` — 49 assertions over the worked example, line
       shapes, header forms, gap arithmetic, rests, and the near-miss matches
 - [x] Every failure is a sentence: nothing pasted, a link on its own, or text
       with no timestamped exercises in it

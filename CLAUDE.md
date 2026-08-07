@@ -191,6 +191,12 @@ These came from the product owner directly. Changing one is a product decision.
   repaint the calendar and erase days the user actually trained
 - The builder filters by toggling `hidden`, never by re-rendering. Re-rendering
   rebuilds every `<img>`, which flickers on each keystroke.
+- **The catalog stops at `PAGE` (8) rows behind "View N more".** All 43 are
+  still rendered once and revealed by flipping `hidden` — same reason as
+  filtering. Left whole, the list put "+ Add your own exercise" ~2,500px down
+  the page, which is exactly where someone lands once they have decided nothing
+  in the list is what they meant. Expanding is one-way for the rest of the
+  visit: folding it back up on the next keystroke reads as losing their place.
 
 **Video import** (Phase 8, `importer.js`)
 - **It parses pasted text. It does not fetch, and the UI must never imply it
@@ -216,6 +222,11 @@ These came from the product owner directly. Changing one is a product decision.
   the builder's "add your own" does. Nothing is silently dropped.
 - Imports land in the **builder**, never the player. The parser gets things
   wrong and the screen that fixes them already exists.
+- **The routine is not named for you.** The first prose line of a description
+  was tried as a title and it is almost never one — it is "Workout", or the
+  channel's tagline. A guess in the name field looks decided, so it survives
+  into the routine list; the review screen asks instead, and only an untouched
+  field falls back to "Imported routine".
 - Detected per-exercise seconds are kept on `routine.source.detected` but are
   **not played back** — the player runs one interval for the whole routine.
   Wiring them up is the timed-break half of Phase 8.

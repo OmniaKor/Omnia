@@ -162,7 +162,6 @@ export function parseDescription(text, catalog) {
 
   return {
     found: items.some((i) => i.kind === 'exercise'),
-    name: routineName(source),
     header,
     items,
     notes: notesFor(items, header),
@@ -195,16 +194,15 @@ function applyDurations(items, header) {
   if (last && last.seconds === 0) last.seconds = median;
 }
 
-/** A title from the first line that is prose rather than a timestamp. */
-function routineName(text) {
-  for (const line of text.split(/\r?\n/)) {
-    const trimmed = line.trim();
-    if (!trimmed || LINE.test(trimmed)) continue;
-    const name = trimmed.split(/\s*(?:\/\/|\||—|–| - )\s*/)[0].trim();
-    if (name.length >= 3) return name.slice(0, 40);
-  }
-  return 'Imported routine';
-}
+/**
+ * Naming is the user's, deliberately.
+ *
+ * The first prose line of a description was tried as a title and it is almost
+ * never one — it is "Workout", or the channel's tagline, or a header that only
+ * makes sense next to the video. A guess that lands in the name field looks
+ * decided, so it survives to the routine list; an empty field asks.
+ */
+const FALLBACK_NAME = 'Imported routine';
 
 function notesFor(items, header) {
   const bits = [];
@@ -278,7 +276,7 @@ function bigger(a, b) {
  * dropped, so the timed-break half of this phase has them waiting and the
  * review screen can show that they were understood.
  */
-export function toRoutine(result, url) {
+export function toRoutine(result, url, name) {
   const exercises = [];
   const customExercises = [];
   let n = 0;
@@ -304,7 +302,9 @@ export function toRoutine(result, url) {
 
   return {
     id: null,
-    name: result.name,
+    // Blank is only reachable by saving the field untouched; the routine still
+    // has to be called something in storage.
+    name: String(name ?? '').trim().slice(0, 40) || FALLBACK_NAME,
     focus: 'Imported',
     level: 'custom',
     exercises,
@@ -341,7 +341,7 @@ export function findUrl(text) {
 /* ── Screen ───────────────────────────────────────────────────────────── */
 
 export function renderImport(view, catalog) {
-  state = { step: 'form', error: '', result: null, url: '', text: '' };
+  state = { step: 'form', error: '', result: null, url: '', text: '', name: '' };
   paint(view, catalog);
 }
 
@@ -408,6 +408,10 @@ function review(result) {
         ${exercises.length} exercises${rests.length ? `, ${rests.length} rests` : ''}
         · ${matched} matched the catalog
       </p>
+
+      <input class="field field--name" id="import-name" type="text" maxlength="40"
+             placeholder="Name it" value="${esc(state.name)}"
+             aria-label="Routine name">
 
       <ol class="import__list">${result.items.map(reviewRow).join('')}</ol>
 
@@ -484,6 +488,11 @@ function wireForm(view, catalog) {
 }
 
 function wireReview(view, catalog) {
+  // Held on the state, not read only at save time, so "Start over" and a
+  // second read do not throw away a name already typed.
+  const nameField = view.querySelector('#import-name');
+  nameField?.addEventListener('input', () => { state.name = nameField.value; });
+
   view.querySelector('#again')?.addEventListener('click', () => {
     state.step = 'form';
     state.error = '';
@@ -497,7 +506,7 @@ function wireReview(view, catalog) {
       if (seconds) setPrefs({ intervalSeconds: seconds });
     }
 
-    const record = saveCustomRoutine(toRoutine(state.result, state.url));
+    const record = saveCustomRoutine(toRoutine(state.result, state.url, state.name));
     // The parser gets things wrong, and the screen that fixes them exists.
     location.hash = `#/build/${record.id}`;
   });

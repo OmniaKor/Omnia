@@ -61,7 +61,9 @@ group('The worked example');
 
   ok('finds a routine', out.found === true);
   ok('reads all ten exercises', out.items.length === 10, `got ${out.items.length}`);
-  ok('takes the name from the header line', out.name === 'Workout', out.name);
+  // "Workout" is what the old guess-a-title pass returned here, and it is a
+  // fair sample of how useful that guess was.
+  ok('does not name the routine for you', out.name === undefined, String(out.name));
   ok('reads "30s work" from the header', out.header.work === 30, JSON.stringify(out.header));
   ok('reads "no rest" as zero', out.header.rest === 0, JSON.stringify(out.header));
   ok('every exercise is 30s', out.items.every((i) => i.seconds === 30),
@@ -88,7 +90,12 @@ group('The worked example');
      [0, 1, 5].every((i) => out.items[i].catalogId === 'Crunches'),
      [0, 1, 5].map(named).join(' | '));
 
-  const routine = toRoutine(out, '');
+  const routine = toRoutine(out, '', 'Ten minute abs');
+  ok('the routine takes the name you typed', routine.name === 'Ten minute abs',
+     routine.name);
+  ok('a blank name falls back rather than storing nothing',
+     toRoutine(out, '', '   ').name === 'Imported routine',
+     toRoutine(out, '', '   ').name);
   ok('all ten reach the routine', routine.exercises.length === 10,
      `${routine.exercises.length}`);
   ok('unmatched ones become custom exercises',
