@@ -26,10 +26,18 @@ If a change needs a server to answer a request, it cannot ship on Pages. So:
 - **Ships to the browser:** HTML, CSS, JS, Tailwind, DaisyUI
 - **Runs at build time only:** `tools/build_catalog.py`. Its output is committed;
   nobody needs Python to deploy.
+- **Called from the browser, with the user's own key:** the YouTube Data API and
+  the Anthropic API (Phase 8). Both are CORS-enabled, so Pages stays sufficient —
+  but see the video-import rules below for what this does and does not buy.
 - **Later, optional:** Flask (Phase 11, self-host only), Supabase (Phase 12, called
   from the browser — so Pages stays sufficient)
 
 **Do not add a runtime Python dependency to `app/`.** It will 404 on Pages.
+
+**The test for "can this ship" is not "is there an API for it" but "can the
+browser reach that API".** Video import is the worked example: the model call
+is fine, and reading a YouTube page directly is impossible — same feature, two
+different answers.
 
 ## Buildless on purpose
 
@@ -59,7 +67,8 @@ Omnia/
 │   ├── timer.test.html           # the interval rules
 │   ├── store.test.html           # the calendar colour rules
 │   ├── audio.test.html           # the audio contract, plus buttons for ears
-│   └── builder.test.html         # drives the real builder against a fixture
+│   ├── builder.test.html         # drives the real builder against a fixture
+│   └── importer.test.html        # link shapes + every bad model answer
 └── app/                          # ← what GitHub Pages serves
     ├── .nojekyll                 # belt and braces; see Gotchas
     ├── index.html                # the whole app — one page, hash-routed
@@ -73,9 +82,11 @@ Omnia/
         ├── img/                  # hero + placeholder art (SVG)
         └── js/
             ├── store.js          # localStorage; the only thing that persists
+            ├── keys.js           # the two API keys — a SEPARATE storage key
             ├── catalog.js        # loads + indexes the JSON, resolves routines
             ├── routines.js       # list + preview
             ├── builder.js        # build/edit your own routine
+            ├── importer.js       # YouTube link → routine (Phase 8)
             ├── player.js         # the timer screen
             ├── timer.js          # the interval engine
             ├── audio.js          # every sound, plus haptics
@@ -182,6 +193,46 @@ These came from the product owner directly. Changing one is a product decision.
   repaint the calendar and erase days the user actually trained
 - The builder filters by toggling `hidden`, never by re-rendering. Re-rendering
   rebuilds every `<img>`, which flickers on each keystroke.
+
+**Video import** (Phase 8, `importer.js`)
+- **Nothing watches the video, and the UI must never imply otherwise.** Two
+  walls, and they are not the same wall:
+  - A browser cannot read a YouTube page. No CORS headers, and the markup it
+    would get is an empty shell — the description lives in a `<script>` JSON
+    blob that any HTML-to-text pass discards. Verified, not assumed.
+  - Captions are shut by **policy**: `captions.download` needs OAuth from the
+    video's *owner*. No key will ever fetch a stranger's transcript. Do not go
+    looking for a clever way around this one; there isn't one.
+- What is reachable is the Data API's `videos.list` — CORS-enabled, plain key,
+  returns title + description. Workout descriptions often carry timestamped
+  chapters, and that is what gets read.
+- **The paste box is not a fallback to tidy away.** It is the only path that
+  works for videos whose routine is on screen rather than in the description,
+  and it needs no YouTube key at all.
+- `found: false` in the schema exists so "this text has no workout in it" is a
+  real answer. A hallucinated routine is worse than none — somebody will try to
+  do it.
+- `catalogId` is an **enum of the real ids**, so an invented id cannot come
+  back. It is still re-checked against `byId`; the schema guarantees shape, not
+  sense.
+- Read the **text block**, not `content[0]` — thinking is on by default on
+  `claude-opus-5` and the first block is usually a thinking block. Check
+  `stop_reason` for `refusal`/`max_tokens` *before* touching `content`.
+- Imports land in the **builder**, never the player. The model gets things
+  wrong and the screen that fixes them already exists.
+- Detected per-exercise seconds are kept on `routine.source.detected` but are
+  **not played back** — the player runs one interval for the whole routine.
+  Wiring them up is the timed-break half of Phase 8.
+
+**API keys**
+- They live under their own localStorage key, **`omnia.keys.v1` — never in
+  `omnia.v1`**. Phase 12 syncs the shape of `omnia.v1` to Supabase, and a key
+  that rode along in it would be uploaded the moment accounts ship.
+- The key is the **user's own**. This only works because of that; the
+  `anthropic-dangerous-direct-browser-access` header would be indefensible
+  with a key of ours in the bundle.
+- Say plainly, in the UI, that anything running script on the origin can read
+  them. That is the real cost of no server, and it is not ours to hide.
 
 **Chrome**
 - Header: `Omnia` wordmark + hero image, with the tagline and version above it

@@ -1121,6 +1121,116 @@ body.is-playing .app-shell { padding-top: env(safe-area-inset-top); }
   color: var(--color-secondary);
 }
 
+/* ─── Import from a video ───────────────────────────────────────────── */
+
+/* One column, phone width, on every screen. This is a form that is read top to
+   bottom and then left alone — widening it on a desktop would only stretch the
+   line length of the explanations, which are the part that matters most here. */
+.import {
+  max-width: 34rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.import__label { margin: 0.75rem 0 0.1rem; }
+.import .hint { margin: 0.15rem 0 0.5rem; }
+
+.import__text {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  resize: vertical;
+  min-height: 7rem;
+}
+
+/* Keys and the paste box are both folded away by default: the common path is
+   one field and one button, and a screen that opens with three inputs and a
+   warning reads like a configuration chore rather than a feature. */
+.import__fold {
+  border: 1px solid color-mix(in srgb, var(--color-base-content) 12%, transparent);
+  border-radius: var(--radius-field);
+  padding: 0.6rem 0.85rem;
+  margin: 0.35rem 0;
+}
+.import__fold > summary {
+  cursor: pointer;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+  min-height: 1.5rem;
+  display: flex;
+  align-items: center;
+}
+.import__fold[open] > summary { margin-bottom: 0.5rem; }
+
+.import__row { display: flex; gap: 0.6rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.import__row .btn-omnia { flex: 1 1 8rem; }
+
+.import__go { margin-top: 1rem; padding: 0.9rem 1.5rem; }
+
+/* Errors and progress share one line. They are alternatives, never both, and
+   giving them separate slots would leave a permanent gap on a screen that is
+   mostly empty to begin with. */
+.import__status {
+  min-height: 1.4rem;
+  margin: 0.6rem 0 0;
+  font-size: 0.82rem;
+  color: var(--color-accent);
+}
+
+.import__found, .import__miss {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.8rem;
+  letter-spacing: 0.04em;
+  margin: 0 0 0.5rem;
+}
+.import__miss { color: var(--color-accent); }
+
+.import__list {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+  border-top: 1px solid color-mix(in srgb, var(--color-base-content) 12%, transparent);
+}
+.import__item {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.6rem 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--color-base-content) 12%, transparent);
+}
+.import__item--rest { color: var(--color-secondary); font-style: italic; }
+
+.import__name { min-width: 0; }
+
+/* A movement the catalog does not have. Marked because it will render as
+   drawn placeholder art rather than a photograph, and that should not be a
+   surprise on the preview screen. */
+.import__own {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-secondary);
+  border: 1px solid color-mix(in srgb, var(--color-base-content) 18%, transparent);
+  border-radius: 999px;
+  padding: 0.05rem 0.4rem;
+  margin-left: 0.4rem;
+  white-space: nowrap;
+}
+
+.import__time {
+  font-family: "IBM Plex Mono", monospace;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  color: var(--color-secondary);
+  flex: none;
+}
+
 .ex-row--tap {
   grid-template-columns: 2rem 4.5rem 1fr 1.5rem;
   cursor: pointer;

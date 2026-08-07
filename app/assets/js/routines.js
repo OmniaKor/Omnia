@@ -28,6 +28,13 @@ export function renderList(view, { routines }) {
         </span>
         <span class="routine-card__meta">Pick exercises, or add your own</span>
       </a>
+      <a class="routine-card routine-card--new" href="#/import">
+        <span class="routine-card__top">
+          <span class="routine-card__name">Import routine from YouTube video</span>
+          <span class="type-label">↓</span>
+        </span>
+        <span class="routine-card__meta">Paste a link and let it read the workout</span>
+      </a>
     </div>
   `;
 

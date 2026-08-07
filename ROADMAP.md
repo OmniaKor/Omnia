@@ -48,7 +48,7 @@ and survives refreshes but not a new phone. Phase 12 is what fixes that.
 | 5 | Mobile polish & PWA | ✅ Done |
 | 6 | Sound & haptics | ✅ Done |
 | 7 | Routine builder | ✅ Done (naming still open) |
-| 8 | Import a routine from a video + timed breaks | ⬜ Planned |
+| 8 | Import from a video + timed breaks | 🟡 Import done |
 | 9 | Sound & music, second pass | ⬜ Planned |
 | 10 | The marshmallow — streak incentive | ⬜ Planned |
 | 11 | Flask API (optional self-host) | ⬜ Planned |
@@ -190,63 +190,81 @@ there is currently no way to detect it from a web app.
 - [ ] Photos for user-added exercises
 - [ ] Replace the remaining `[placeholder]` cards with real images
 
-## Phase 8 — Import a routine from a video + timed breaks ⬜
+## Phase 8 — Import a routine from a video + timed breaks 🟡 (import shipped)
 
 Paste a YouTube link, let a model read the workout out of it, and get back a
 custom routine — exercises in order, with the breaks the video actually takes.
 
-### The honest constraint
+### The honest constraint, after testing it
 
-This is the first feature that cannot be answered by a file on disk, and it
-breaks the rule at the top of this document in two places:
+The first draft of this phase assumed a server-side `web_fetch` could pull the
+video's text, sidestepping CORS. **That was checked and it does not work.**
+Fetching a watch page server-side returns the title and nothing else: the
+description and chapter list live in a `ytInitialData` JSON blob inside a
+`<script>` tag, which every HTML-to-text pass discards. YouTube also bot-walls
+datacenter IPs. The plan was wrong, so the plan changed.
 
-1. **Reading the video needs a fetch Pages can't make.** A browser cannot pull
-   YouTube captions directly — no CORS headers, and the captions endpoint needs
-   the video owner's OAuth. So the page cannot get the transcript by itself.
-2. **Calling a model needs a key.** Any key committed to `app/` is public the
-   moment it deploys, and a public key is a stranger's bill.
+Captions are worse, and worth stating separately because it is a *policy* wall
+rather than a technical one: `captions.list` works with a plain key, but
+**`captions.download` requires OAuth from the video's owner.** There is no
+key-only path to a stranger's transcript, and no amount of cleverness produces
+one.
 
-Both are solved without adding a server, but the solution has to be deliberate:
+What survives, and what the shipped feature uses:
 
-- **The key is the user's, not ours.** They paste their own Anthropic API key
-  once; it lives in `localStorage` beside their prefs and never leaves the
-  device except to `api.anthropic.com`. Requests go direct from the browser with
-  `anthropic-dangerous-direct-browser-access: true`. This is the only shape that
-  works on Pages, and it means **import is opt-in for the handful of users who
-  want it** — never a gate on the two features that already work.
-- **The fetch happens on Anthropic's side, not ours.** The `web_fetch` server
-  tool retrieves URLs already present in the conversation, so the pasted link is
-  fetched server-side and the CORS problem never arises. No proxy, no Worker,
-  nothing new to host.
+- **`videos.list` on the YouTube Data API.** CORS-enabled, works with a
+  referrer-restricted key, returns title + description. Workout descriptions
+  very often carry timestamped chapters, and that is the routine.
+- **The Anthropic API, called from the browser with the user's own key**
+  (`anthropic-dangerous-direct-browser-access`). It is defensible only because
+  the key is theirs. Import is opt-in and never gates the two features that
+  already work.
+- **A paste box, which is not a consolation prize.** For videos that keep the
+  routine on screen rather than in the description, it is the *only* path — and
+  it needs no YouTube key at all.
 
-**Validate the fetch before building the UI.** Whether `web_fetch` returns a
-YouTube page with enough of the transcript to parse is the single assumption the
-whole phase rests on, and it is one `curl` to find out. If it comes back as an
-empty player shell, the fallback is a textarea: the user pastes the transcript or
-description themselves, everything downstream is identical, and the link field
-comes back when there's a way to make it work.
+The remaining limit is not technical: **almost no high schooler has an
+Anthropic API key.** Realistically this ships for Justin and Owen. If that
+proves true, the better shape is a build-time `tools/import_video.py` that
+commits routines to the repo — `yt-dlp` can reach captions no browser can, and
+users would need no key at all. Recorded here so the option is not relitigated
+from scratch.
 
-### Import
+### Import ✅
 
-- [ ] Settings pane: paste an API key, test it, clear it. Plain text about where
-      it is stored and what it costs — this is someone's money.
-- [ ] Paste a link → `web_fetch` reads the video → the model returns exercises in
-      order, with per-exercise seconds and the breaks between them
-- [ ] `claude-opus-5`, called from `app/assets/js/import.js`. Ask for
-      `output_config.format` with a JSON schema matching a stored routine, so the
-      response is a routine rather than prose to be parsed
-- [ ] Match each extracted name against the catalog first; anything with no match
-      becomes a `customExercises` entry on the routine, exactly as the builder's
-      "add your own" already does. **No new data shape** — import writes what
-      Phase 7 already reads.
-- [ ] Land in the builder, not the player. The model will get things wrong, and
-      the edit screen that fixes them already exists.
-- [ ] Every failure is a sentence, not a stack trace: no key, bad key, rate
-      limited, no captions, nothing that looks like a workout
-- [ ] Nothing about import may break the app for someone who never uses it — no
+- [x] Keys pane: paste, save, clear, shown masked. Plain text about where they
+      live and who can read them — this is someone's money and someone's secret
+- [x] Stored under **`omnia.keys.v1`**, deliberately *not* in `omnia.v1`, so the
+      Phase 12 Supabase sync can never carry a key to a server
+- [x] Paste a link → `videos.list` reads title + description → the model returns
+      exercises in order, with per-exercise seconds and the rests between them
+- [x] Paste-the-text path for everything a link cannot reach
+- [x] `claude-opus-5` from `app/assets/js/importer.js`, with
+      `output_config.format` so the answer is a routine rather than prose to
+      parse. `catalogId` is an **enum of the real ids** — an invented id cannot
+      come back, and it is re-checked anyway
+- [x] `found: false` is a first-class answer, so a video with no routine in it
+      says so instead of inventing one
+- [x] Match each extracted name against the catalog; anything with no match
+      becomes a `customExercises` entry, exactly as the builder's "add your own"
+      already does. **No new routine shape**
+- [x] Land in the builder, not the player. The model will get things wrong, and
+      the edit screen that fixes them already exists
+- [x] Detected timings shown in review and kept on `routine.source.detected`;
+      offers to set the 30s/45s interval to match what the video used
+- [x] Reached from **Routines → "Import routine from YouTube video"**
+- [x] `tests/importer.test.html` — link shapes, refusals, truncation, bad ids,
+      clamping, and the thinking-block-first response
+- [x] Every failure is a sentence, not a stack trace: no key, bad key, rate
+      limited, bad link, empty description, nothing that looks like a workout
+- [x] Nothing about import may break the app for someone who never uses it — no
       key means the button explains itself, and that is the end of it
 
-### Timed breaks mid-routine
+### Timed breaks mid-routine ⬜
+
+**Not built yet.** Import detects rests and records their length, but the player
+still runs one interval for the whole routine, so they are shown and stored
+rather than played. This is the half that makes them real.
 
 Phase 3's break is a button the user presses when they need air. This is a
 different thing: a break the routine *plans*, sitting between two exercises.
