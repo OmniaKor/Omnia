@@ -1,305 +1,284 @@
 /**
- * importer.js — turn a YouTube link into a routine.
+ * importer.js — turn a YouTube description into a routine.
  *
- * What this can and cannot see, stated plainly because the whole design falls
- * out of it:
+ * No API, no key, no network. Workout creators already write the routine out
+ * in the description as a timestamped list, and that list is regular enough to
+ * read directly:
  *
- * Nothing here watches the video. A static page cannot. Two walls make sure of
- * it — a browser cannot read a YouTube page directly (no CORS headers, and the
- * markup it would get is an empty shell whose text is rendered by script), and
- * captions are closed by policy rather than by CORS: `captions.download` needs
- * OAuth from the video's *owner*, so no key of ours will ever fetch someone
- * else's transcript.
+ *     Workout // 30s work, no rest
+ *     00:09 - Full Extension Crunches
+ *     00:39 - Eagle Crunches
+ *     01:09 - Scissor Kicks
  *
- * What is reachable from a static page is the Data API's `videos.list`, which
- * is CORS-enabled and returns the title and description with a plain key. For
- * a good share of workout videos that description *is* the routine, because
- * creators write timestamped chapters into it. So that is what gets read, and
- * when it comes back with nothing useful the user is told exactly that and
- * offered the box to paste the text in themselves.
+ * The exercises are the lines; the intervals are the gaps between the
+ * timestamps. That is the whole trick, and it is why this ended up as a
+ * hundred lines of parsing rather than a model call — it runs offline, costs
+ * nothing, and cannot invent an exercise that was never in the text.
  *
- * The model then reads that text. It is not guessing at a video it cannot see,
- * and it is told to say so rather than invent a routine — see `found` in the
- * schema, which exists specifically to make "this text has no workout in it" a
- * first-class answer instead of a hallucinated one.
+ * The one thing it cannot do is fetch. A browser cannot read a YouTube page
+ * (no CORS headers, and the markup is an empty shell whose text is rendered by
+ * script), and captions are shut by policy — `captions.download` needs OAuth
+ * from the video's owner. So the description is pasted, and the screen says
+ * so rather than pretending a link would work.
  */
 
 import { esc } from './ui.js';
-import { getKeys, setKeys, clearKeys, maskKey } from './keys.js';
-import { saveCustomRoutine } from './store.js';
+import { saveCustomRoutine, setPrefs } from './store.js';
 
-const MODEL = 'claude-opus-5';
+/** Nothing sensible is longer than this; the rest is comments and links. */
+const MAX_TEXT = 20_000;
 
-/** Anything longer than this is not a description, it is a novel. */
-const MAX_TEXT = 40_000;
+/**
+ * `00:09 - Name`, and the dozen other ways people write the same line.
+ *
+ * Hours are optional, the separator is optional, and the bracket forms show up
+ * in descriptions copied out of other sites. Being generous here is the
+ * difference between working on most videos and working on the author's own.
+ */
+const LINE = /^\s*[[(]?\s*(?:(\d{1,2}):)?(\d{1,2}):(\d{2})\s*[\])]?\s*(?:[-–—•·|:>»]+\s*)?(.*)$/;
+
+/** Lines that are timestamped but are not part of the workout. */
+const NOT_EXERCISE = /^(intro|outro|start|end|subscribe|thanks|thank you|follow|instagram|tiktok|twitter|discord|patreon|merch|shop|sponsor|ad\b|disclaimer|music|credits|my socials|socials|links?)\b/i;
+
+/** A pause rather than a movement. */
+const IS_REST = /^(rest|break|recovery|water|pause|breathe)\b/i;
+
+/**
+ * Words too common to identify a movement on their own.
+ *
+ * Without this, "Low Plank Hold" matches "Hollow Body Hold" on the strength of
+ * the word "hold", which is not a match, it is a coincidence.
+ */
+const GENERIC = new Set([
+  'hold', 'the', 'on', 'of', 'to', 'into', 'with', 'and', 'a', 'in', 'floor',
+  'up', 'down', 'low', 'high', 'slow', 'fast', 'single', 'double', 'alternate',
+  'alternating', 'seated', 'standing', 'lying', 'side', 'cross', 'reverse',
+  'bent', 'full', 'half', 'left', 'right', 'each', 'per', 'sec', 'secs',
+  'second', 'seconds', 'x', 'r', 'l',
+]);
 
 let state = null;
 
-/* ── URL parsing ──────────────────────────────────────────────────────── */
+/* ── Parsing ──────────────────────────────────────────────────────────── */
+
+/** `01:09` → 69. Hours optional. */
+function toSeconds(h, m, s) {
+  return (Number(h || 0) * 3600) + (Number(m) * 60) + Number(s);
+}
 
 /**
- * Pull the eleven-character video id out of whatever the user pasted.
+ * Pull the work/rest interval out of a header like `30s work, no rest`.
  *
- * People paste the share link, the mobile link, the one with a playlist and a
- * timestamp glued on, and sometimes just the id. All of them should work; a
- * link that "looks fine" being rejected on a technicality is the most annoying
- * possible first impression.
+ * When a description states this, it beats the gaps between timestamps —
+ * a 45-on-15-off video has 60-second gaps, and reading those as the exercise
+ * length would put every interval a quarter too long.
  */
-export function parseVideoId(input) {
-  const raw = String(input ?? '').trim();
-  if (!raw) return null;
+export function parseHeader(text) {
+  const head = text.slice(0, 400);
+  const work = /(\d{1,3})\s*(?:s\b|sec|secs|seconds?)\s*(?:of\s+)?(?:work|on\b|work\b)/i.exec(head)
+    || /work\s*[:\-]?\s*(\d{1,3})\s*(?:s\b|sec|secs|seconds?)/i.exec(head);
 
-  // A bare id, pasted on its own.
-  if (/^[\w-]{11}$/.test(raw)) return raw;
-
-  let url;
-  try {
-    url = new URL(raw.includes('://') ? raw : `https://${raw}`);
-  } catch {
-    return null;
+  let rest = null;
+  if (/\bno\s+rest\b/i.test(head)) {
+    rest = 0;
+  } else {
+    // Labelled form first, deliberately. `work: 30s rest: 10s` also contains
+    // the string "30s rest", so testing "N seconds rest" first would read the
+    // work interval as the rest one.
+    const m = /rest\s*[:\-]?\s*(\d{1,3})\s*(?:s\b|sec|secs|seconds?)/i.exec(head)
+      || /(\d{1,3})\s*(?:s\b|sec|secs|seconds?)\s*(?:of\s+)?(?:rest|off\b)/i.exec(head);
+    if (m) rest = Number(m[1]);
   }
 
-  const host = url.hostname.replace(/^www\./, '').toLowerCase();
-  const path = url.pathname.replace(/\/+$/, '');
-
-  if (host === 'youtu.be') return valid(path.slice(1));
-
-  if (host.endsWith('youtube.com') || host.endsWith('youtube-nocookie.com')) {
-    if (path === '/watch') return valid(url.searchParams.get('v'));
-    // /shorts/ID, /embed/ID, /live/ID, /v/ID all put the id first after the verb.
-    const m = path.match(/^\/(shorts|embed|live|v)\/([\w-]+)/);
-    if (m) return valid(m[2]);
-  }
-
-  return null;
-}
-
-function valid(id) {
-  return id && /^[\w-]{11}$/.test(id) ? id : null;
-}
-
-/* ── The two network calls ────────────────────────────────────────────── */
-
-/**
- * Title + description, via the one YouTube endpoint a static page can reach.
- */
-export async function fetchVideoText(videoId, key) {
-  const url = 'https://www.googleapis.com/youtube/v3/videos'
-    + `?part=snippet,contentDetails&id=${encodeURIComponent(videoId)}`
-    + `&key=${encodeURIComponent(key)}`;
-
-  let res;
-  try {
-    res = await fetch(url);
-  } catch {
-    throw new Error('Could not reach YouTube. Check your connection.');
-  }
-
-  const body = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    const reason = body?.error?.message || `HTTP ${res.status}`;
-    if (res.status === 403) {
-      throw new Error(`YouTube refused the key — check it is a Data API v3 key and that the API is enabled. (${reason})`);
+  // `45/15` — only trusted alongside a nearby "work" or "rest" word, because a
+  // bare pair of numbers is far more often a date or a set count.
+  if (!work && /\b(work|rest|on|off)\b/i.test(head)) {
+    const pair = /\b(\d{1,3})\s*\/\s*(\d{1,3})\b/.exec(head);
+    if (pair) {
+      return { work: Number(pair[1]), rest: Number(pair[2]) };
     }
-    if (res.status === 400) {
-      throw new Error(`YouTube rejected the request — the key looks malformed. (${reason})`);
-    }
-    throw new Error(`YouTube said: ${reason}`);
   }
 
-  const item = body?.items?.[0];
-  if (!item) {
-    throw new Error('No such video — it may be private, deleted, or region-locked.');
-  }
-
-  return {
-    title: item.snippet?.title || '',
-    description: item.snippet?.description || '',
-    duration: prettyDuration(item.contentDetails?.duration || ''),
-  };
+  return { work: work ? Number(work[1]) : null, rest };
 }
 
-/** `PT12M30S` → `12:30`. Display only; nothing depends on it. */
-function prettyDuration(iso) {
-  const m = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/.exec(iso);
-  if (!m) return '';
-  const [h, min, s] = [Number(m[1] || 0), Number(m[2] || 0), Number(m[3] || 0)];
-  const mm = h ? String(min).padStart(2, '0') : String(min);
-  return `${h ? `${h}:` : ''}${mm}:${String(s).padStart(2, '0')}`;
+/** Tidy a name pulled off the end of a timestamp line. */
+function cleanName(raw) {
+  return String(raw || '')
+    .replace(/\s*[([]\s*\d+\s*(?:s|sec|secs|seconds?|reps?)\s*[)\]]\s*$/i, '')
+    .replace(/[\s.,;:–—-]+$/, '')
+    .replace(/^[\s.,;:–—-]+/, '')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+    .slice(0, 60);
 }
 
 /**
- * The schema the model must answer in.
+ * Read a description into an ordered list of exercises and rests.
  *
- * `catalogId` is an enum of the real ids plus the empty string, so a movement
- * that is not in the catalog cannot come back as a plausible-looking id that
- * resolves to nothing. Structured outputs enforce it, which is cheaper and
- * more reliable than validating prose afterwards.
+ * Exported for the tests, which is most of why the parsing is separate from
+ * the screen — every awkward description shape is a unit test rather than
+ * something to be retried by hand in a browser.
  */
-function buildSchema(catalog) {
-  return {
-    type: 'object',
-    properties: {
-      found: { type: 'boolean' },
-      name: { type: 'string' },
-      notes: { type: 'string' },
-      items: {
-        type: 'array',
-        items: {
-          type: 'object',
-          properties: {
-            kind: { type: 'string', enum: ['exercise', 'rest'] },
-            name: { type: 'string' },
-            seconds: { type: 'integer' },
-            catalogId: { type: 'string', enum: ['', ...catalog.exercises.map((e) => e.id)] },
-            cue: { type: 'string' },
-          },
-          required: ['kind', 'name', 'seconds', 'catalogId', 'cue'],
-          additionalProperties: false,
-        },
-      },
-    },
-    required: ['found', 'name', 'notes', 'items'],
-    additionalProperties: false,
-  };
-}
+export function parseDescription(text, catalog) {
+  const source = String(text ?? '').slice(0, MAX_TEXT);
+  const header = parseHeader(source);
 
-function buildPrompt(text, catalog) {
-  const list = catalog.exercises.map((e) => `${e.id} = ${e.name}`).join('\n');
+  const rows = [];
+  for (const line of source.split(/\r?\n/)) {
+    const m = LINE.exec(line);
+    if (!m) continue;
 
-  return `Below is the text belonging to a YouTube workout video — its title and description, or a transcript someone pasted. Work out the routine it describes.
+    const name = cleanName(m[4]);
+    if (!name || NOT_EXERCISE.test(name)) continue;
 
-Read only what the text actually says. You cannot see the video. If the text does not describe a sequence of exercises — it is a vlog, a music video, a description with no exercise list — set "found" to false, leave "items" empty, and say why in "notes". Do not invent a routine to be helpful; a wrong routine is worse than none, because someone will try to do it.
+    rows.push({ at: toSeconds(m[1], m[2], m[3]), name });
+  }
 
-For each item in order:
-- "kind" is "exercise" for a movement, "rest" for a break or recovery period.
-- "seconds" is how long it runs. Work it out from consecutive timestamps where the text has them, or from a stated interval like "45 seconds on, 15 off". If the text genuinely does not say, use 0 — do not guess.
-- "catalogId" must be an id from the list below when the movement is clearly the same one, allowing for wording ("bicycle crunches" is Air_Bike). Use "" when there is no honest match; the movement is kept either way, just as the user's own.
-- "name" is the movement as a person would say it, whether or not it matched.
-- "cue" is one short line on how to do it, from the text. "" if the text does not say.
+  // Descriptions are written top to bottom, but a stray timestamp in a comment
+  // can land out of order and would otherwise produce a negative interval.
+  rows.sort((a, b) => a.at - b.at);
 
-"name" at the top level is a short title for the routine — four words at most, no channel names, no "Day 3".
+  const items = [];
+  for (let i = 0; i < rows.length; i += 1) {
+    const row = rows[i];
+    const next = rows[i + 1];
+    const gap = next ? next.at - row.at : 0;
 
-Catalog:
-${list}
-
-Text:
-"""
-${text.slice(0, MAX_TEXT)}
-"""`;
-}
-
-/**
- * Ask the model, from the browser, with the user's own key.
- *
- * The direct-browser-access header is what makes this legal from a page with
- * no server. It is named the way it is on purpose: the key is in the user's
- * localStorage, so this only holds up because the key is *theirs*. It would be
- * indefensible with a key of ours shipped in the bundle.
- */
-export async function analyse(text, catalog, key) {
-  let res;
-  try {
-    res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 16000,
-        output_config: { format: { type: 'json_schema', schema: buildSchema(catalog) } },
-        messages: [{ role: 'user', content: buildPrompt(text, catalog) }],
-      }),
+    items.push({
+      kind: IS_REST.test(row.name) ? 'rest' : 'exercise',
+      name: row.name,
+      at: row.at,
+      seconds: gap > 0 ? gap : 0,
+      catalogId: '',
+      cue: '',
     });
-  } catch {
-    throw new Error('Could not reach the model. Check your connection.');
   }
 
-  const body = await res.json().catch(() => null);
-
-  if (!res.ok) {
-    const reason = body?.error?.message || `HTTP ${res.status}`;
-    if (res.status === 401) throw new Error('That Anthropic key was rejected. Check it and try again.');
-    if (res.status === 429) throw new Error('Rate limited by the API. Wait a moment and try again.');
-    if (res.status === 400) throw new Error(`The request was rejected: ${reason}`);
-    throw new Error(`The model API said: ${reason}`);
+  applyDurations(items, header);
+  for (const item of items) {
+    if (item.kind === 'exercise') item.catalogId = matchExercise(item.name, catalog);
   }
 
-  // Check why it stopped before reading content. A refusal returns HTTP 200
-  // with an empty content array, so anything that indexes straight into
-  // content[0] breaks here rather than reporting something useful.
-  if (body?.stop_reason === 'refusal') {
-    throw new Error('The model declined to answer for this video.');
-  }
-  if (body?.stop_reason === 'max_tokens') {
-    throw new Error('The video description was too long to work through. Try pasting a shorter section.');
-  }
-
-  // Thinking is on by default on this model, so the first block is not
-  // necessarily the text one.
-  const block = (body?.content || []).find((b) => b.type === 'text');
-  if (!block?.text) throw new Error('The model returned nothing to read.');
-
-  let parsed;
-  try {
-    parsed = JSON.parse(block.text);
-  } catch {
-    throw new Error('The model returned something unreadable.');
-  }
-
-  return normalise(parsed, catalog);
+  return {
+    found: items.some((i) => i.kind === 'exercise'),
+    name: routineName(source),
+    header,
+    items,
+    notes: notesFor(items, header),
+  };
 }
 
 /**
- * Trust the schema for shape, not for sense.
+ * Decide how long each item ran.
  *
- * Structured outputs guarantee the fields exist and that `catalogId` is a real
- * id; they cannot guarantee the seconds are sane or that a "rest" is not
- * fifteen minutes long. Everything that reaches the review screen has been
- * through here.
+ * A stated header wins: it describes the work itself, whereas the gap between
+ * two timestamps is work *plus* whatever rest followed it. Gaps are the
+ * fallback, and the last row has no gap at all, so it inherits the median.
  */
-function normalise(parsed, catalog) {
-  const items = (Array.isArray(parsed.items) ? parsed.items : [])
-    .map((item) => {
-      const catalogId = catalog.byId.has(item.catalogId) ? item.catalogId : '';
-      const seconds = Number.isFinite(item.seconds)
-        ? Math.max(0, Math.min(3600, Math.round(item.seconds)))
-        : 0;
-      return {
-        kind: item.kind === 'rest' ? 'rest' : 'exercise',
-        name: String(item.name || '').trim().slice(0, 60)
-          || (catalogId ? catalog.byId.get(catalogId).name : 'Unnamed'),
-        seconds,
-        catalogId,
-        cue: String(item.cue || '').trim().slice(0, 160),
-      };
-    })
-    // A zero-second nameless row is noise the user would only have to delete.
-    .filter((item) => item.name && item.name !== 'Unnamed');
+function applyDurations(items, header) {
+  const exercises = items.filter((i) => i.kind === 'exercise');
+  if (exercises.length === 0) return;
 
-  return {
-    found: Boolean(parsed.found) && items.some((i) => i.kind === 'exercise'),
-    name: String(parsed.name || '').trim().slice(0, 40) || 'Imported routine',
-    notes: String(parsed.notes || '').trim().slice(0, 400),
-    items,
-  };
+  if (header.work) {
+    for (const item of items) {
+      if (item.kind === 'exercise') item.seconds = header.work;
+      else if (header.rest) item.seconds = header.rest;
+    }
+    return;
+  }
+
+  const gaps = items.map((i) => i.seconds).filter((s) => s > 0).sort((a, b) => a - b);
+  const median = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0;
+
+  const last = items[items.length - 1];
+  if (last && last.seconds === 0) last.seconds = median;
+}
+
+/** A title from the first line that is prose rather than a timestamp. */
+function routineName(text) {
+  for (const line of text.split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || LINE.test(trimmed)) continue;
+    const name = trimmed.split(/\s*(?:\/\/|\||—|–| - )\s*/)[0].trim();
+    if (name.length >= 3) return name.slice(0, 40);
+  }
+  return 'Imported routine';
+}
+
+function notesFor(items, header) {
+  const bits = [];
+  if (header.work) bits.push(`${header.work}s work stated in the description`);
+  if (header.rest === 0) bits.push('no rest');
+  else if (header.rest) bits.push(`${header.rest}s rest`);
+  if (!header.work && items.length) bits.push('intervals read from the gaps between timestamps');
+  return bits.join(' · ');
+}
+
+/* ── Matching against the catalog ─────────────────────────────────────── */
+
+function tokenise(name) {
+  return String(name)
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, ' ')
+    .trim()
+    .split(' ')
+    .filter(Boolean)
+    // Crude singular: "kicks" → "kick", "crunches" → "crunche" → close enough
+    // for set membership, because both sides go through the same mangling.
+    .map((t) => (t.length > 3 && t.endsWith('s') ? t.slice(0, -1) : t));
+}
+
+/**
+ * Find the catalog entry a written name refers to, or `''`.
+ *
+ * Scored on how much of the *catalog* name is present, so "Slow Flutter Kicks"
+ * still finds "Flutter Kicks" — the extra adjective in the description does not
+ * count against it. At least one matched word has to be distinctive, which is
+ * what stops "Low Plank Hold" from landing on "Hollow Body Hold".
+ */
+export function matchExercise(name, catalog) {
+  const words = new Set(tokenise(name));
+  if (words.size === 0) return '';
+
+  let best = null;
+
+  for (const exercise of catalog.exercises) {
+    const target = tokenise(exercise.name);
+    if (target.length === 0) continue;
+
+    const hit = target.filter((t) => words.has(t));
+    if (hit.length === 0) continue;
+    if (!hit.some((t) => !GENERIC.has(t))) continue;
+
+    const coverage = hit.length / target.length;
+    if (coverage < 0.5) continue;
+
+    // More of the catalog name covered wins; on a tie the more specific entry
+    // does, so "Oblique Crunches" beats plain "Crunches" for an oblique crunch.
+    const score = [coverage, hit.length, -target.length];
+    if (!best || bigger(score, best.score)) best = { id: exercise.id, score };
+  }
+
+  return best ? best.id : '';
+}
+
+function bigger(a, b) {
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i] !== b[i]) return a[i] > b[i];
+  }
+  return false;
 }
 
 /* ── Turning the answer into a routine ────────────────────────────────── */
 
 /**
- * The app's routine model has no per-exercise duration — intervals are 30s or
- * 45s, picked before the run — so the detected seconds cannot be played back
- * yet. They are kept on the record under `source` rather than dropped, so the
- * timed-break half of this phase has them waiting, and the review screen shows
- * them so nobody thinks they were understood and then ignored.
+ * The player runs one interval for the whole routine, so the per-exercise
+ * seconds cannot be played back yet. They are kept on the record rather than
+ * dropped, so the timed-break half of this phase has them waiting and the
+ * review screen can show that they were understood.
  */
-export function toRoutine(result, videoId) {
+export function toRoutine(result, url) {
   const exercises = [];
   const customExercises = [];
   let n = 0;
@@ -318,7 +297,7 @@ export function toRoutine(result, videoId) {
       name: item.name,
       placeholder: true,
       images: [],
-      instructions: item.cue ? [item.cue] : [],
+      instructions: [],
     });
     exercises.push(id);
   }
@@ -332,15 +311,15 @@ export function toRoutine(result, videoId) {
     customExercises,
     source: {
       kind: 'youtube',
-      videoId,
-      url: videoId ? `https://www.youtube.com/watch?v=${videoId}` : '',
+      url: url || '',
       importedAt: new Date().toISOString(),
-      detected: result.items,
+      header: result.header,
+      detected: result.items.map(({ kind, name, seconds, at }) => ({ kind, name, seconds, at })),
     },
   };
 }
 
-/** The interval the video actually used, snapped to the two the app offers. */
+/** The interval the video used, snapped to the two the app offers. */
 export function suggestedInterval(items) {
   const secs = items
     .filter((i) => i.kind === 'exercise' && i.seconds > 0)
@@ -352,91 +331,51 @@ export function suggestedInterval(items) {
   return Math.abs(median - 45) < Math.abs(median - 30) ? 45 : 30;
 }
 
+/** Any YouTube link in the pasted text, kept so the routine points home. */
+export function findUrl(text) {
+  const m = /https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/watch\?[^\s]*|youtu\.be\/[\w-]{11})/i
+    .exec(String(text ?? ''));
+  return m ? m[0] : '';
+}
+
 /* ── Screen ───────────────────────────────────────────────────────────── */
 
 export function renderImport(view, catalog) {
-  state = { step: 'form', error: '', result: null, videoId: null, busy: false };
+  state = { step: 'form', error: '', result: null, url: '', text: '' };
   paint(view, catalog);
 }
 
 function paint(view, catalog) {
-  const keys = getKeys();
-
   view.innerHTML = `
     <a class="back-link" href="#/routines">← All routines</a>
 
     <div class="section-head">
       <h2 class="type-display">Import from a video</h2>
-      <p class="type-label">Reads the description, not the video</p>
+      <p class="type-label">Reads the description you paste</p>
     </div>
 
-    ${state.step === 'review' ? review(state.result) : form(keys)}
+    ${state.step === 'review' ? review(state.result) : form()}
   `;
 
   if (state.step === 'review') wireReview(view, catalog);
   else wireForm(view, catalog);
 }
 
-function form(keys) {
-  const hasAnthropic = Boolean(keys.anthropic);
-  const hasYoutube = Boolean(keys.youtube);
-
+function form() {
   return `
     <div class="import">
-      <label class="type-label import__label" for="yt-url">YouTube link</label>
-      <input class="field" id="yt-url" type="url" inputmode="url"
-             autocomplete="off" spellcheck="false"
-             placeholder="https://www.youtube.com/watch?v=…">
-
       <p class="hint">
-        Only the title and description can be read from a link — captions are
-        locked to the video's owner. If a video's description doesn't list the
-        exercises, paste the text in below instead.
+        Open the video, expand the description, copy the timestamped list, and
+        paste it here. Nothing can read the video itself — YouTube gives a page
+        out to a browser with none of the text in it, and captions are locked to
+        whoever owns the video.
       </p>
 
-      <details class="import__fold" ${hasAnthropic ? '' : 'open'}>
-        <summary>Keys ${hasAnthropic ? '· saved' : '· needed'}</summary>
+      <textarea class="field import__text" id="yt-text" rows="10"
+                spellcheck="false"
+                placeholder="Workout // 30s work, no rest&#10;00:09 - Full Extension Crunches&#10;00:39 - Eagle Crunches&#10;01:09 - Scissor Kicks">${esc(state.text)}</textarea>
 
-        <p class="hint">
-          Both keys are yours and stay on this device, in this browser. Nothing
-          is sent anywhere except to Anthropic and YouTube. Anyone who can run
-          script on this page can read them — that is the cost of doing this
-          without a server. Clear them when you're done on a shared machine.
-        </p>
-
-        <label class="type-label import__label" for="k-anthropic">
-          Anthropic key ${hasAnthropic ? `· ${esc(maskKey(keys.anthropic))}` : '· required'}
-        </label>
-        <input class="field" id="k-anthropic" type="password" autocomplete="off"
-               spellcheck="false" placeholder="sk-ant-…">
-
-        <label class="type-label import__label" for="k-youtube">
-          YouTube Data API key ${hasYoutube ? `· ${esc(maskKey(keys.youtube))}` : '· optional'}
-        </label>
-        <input class="field" id="k-youtube" type="password" autocomplete="off"
-               spellcheck="false" placeholder="AIza…">
-        <p class="hint">Without this, use the paste box — the link can't be read.</p>
-
-        <div class="import__row">
-          <button class="btn-omnia btn-ghost" type="button" id="k-save">Save keys</button>
-          <button class="btn-omnia btn-ghost" type="button" id="k-clear">Clear</button>
-        </div>
-      </details>
-
-      <details class="import__fold">
-        <summary>Paste the text instead</summary>
-        <p class="hint">
-          The description, or the transcript from YouTube's “Show transcript”.
-          Works with no YouTube key.
-        </p>
-        <textarea class="field import__text" id="yt-text" rows="6"
-                  placeholder="0:00 Warm up&#10;0:30 Crunches&#10;1:00 Plank…"></textarea>
-      </details>
-
-      <button class="btn-omnia import__go" type="button" id="go"
-              ${state.busy ? 'disabled' : ''}>
-        ${state.busy ? 'Working…' : 'Read the video'}
-      </button>
+      <button class="btn-omnia import__go" type="button" id="go">Read the description</button>
 
       <p class="import__status" id="status" role="status">${esc(state.error)}</p>
     </div>
@@ -447,22 +386,21 @@ function review(result) {
   if (!result.found) {
     return `
       <div class="import">
-        <p class="import__miss">No routine in that text.</p>
-        <p class="hint">${esc(result.notes || 'The description does not list any exercises.')}</p>
+        <p class="import__miss">No timestamped exercises in that text.</p>
         <p class="hint">
-          Plenty of videos keep the routine on screen rather than in the
-          description. Open the video, use “Show transcript”, and paste it into
-          the box.
+          The lines need a time and a name — <code>00:39 - Eagle Crunches</code>.
+          A link on its own has nothing to read; some videos keep the routine on
+          screen and never write it down, and those cannot be imported.
         </p>
-        <button class="btn-omnia" type="button" id="again">Try another</button>
+        <button class="btn-omnia" type="button" id="again">Try again</button>
       </div>
     `;
   }
 
   const exercises = result.items.filter((i) => i.kind === 'exercise');
   const rests = result.items.filter((i) => i.kind === 'rest');
-  const interval = suggestedInterval(result.items);
   const matched = exercises.filter((i) => i.catalogId).length;
+  const interval = suggestedInterval(result.items);
 
   return `
     <div class="import">
@@ -471,9 +409,7 @@ function review(result) {
         · ${matched} matched the catalog
       </p>
 
-      <ol class="import__list">
-        ${result.items.map(reviewRow).join('')}
-      </ol>
+      <ol class="import__list">${result.items.map(reviewRow).join('')}</ol>
 
       ${result.notes ? `<p class="hint">${esc(result.notes)}</p>` : ''}
 
@@ -501,7 +437,7 @@ function reviewRow(item) {
   const time = item.seconds > 0 ? `${item.seconds}s` : '—';
   if (item.kind === 'rest') {
     return `<li class="import__item import__item--rest">
-      <span class="import__name">Rest</span>
+      <span class="import__name">${esc(item.name)}</span>
       <span class="import__time">${time}</span>
     </li>`;
   }
@@ -517,123 +453,52 @@ function reviewRow(item) {
 /* ── Wiring ───────────────────────────────────────────────────────────── */
 
 function wireForm(view, catalog) {
-  const el = (id) => view.querySelector(`#${id}`);
-  const status = el('status');
+  const go = view.querySelector('#go');
+  const box = view.querySelector('#yt-text');
 
-  el('k-save').addEventListener('click', () => {
-    const patch = {};
-    const a = el('k-anthropic').value.trim();
-    const y = el('k-youtube').value.trim();
-    if (a) patch.anthropic = a;
-    if (y) patch.youtube = y;
-    setKeys(patch);
-    el('k-anthropic').value = '';
-    el('k-youtube').value = '';
-    state.error = 'Keys saved.';
-    paint(view, catalog);
-  });
-
-  el('k-clear').addEventListener('click', () => {
-    clearKeys();
-    state.error = 'Keys cleared.';
-    paint(view, catalog);
-  });
-
-  el('go').addEventListener('click', () => run(view, catalog));
-
-  el('yt-url').addEventListener('keydown', (event) => {
-    if (event.key === 'Enter') run(view, catalog);
-  });
-
-  if (status && state.error) status.textContent = state.error;
-}
-
-async function run(view, catalog) {
-  const keys = getKeys();
-  const urlField = view.querySelector('#yt-url');
-  const pasted = view.querySelector('#yt-text').value.trim();
-  const status = view.querySelector('#status');
-
-  const say = (message) => { if (status) status.textContent = message; };
-
-  if (!keys.anthropic) {
-    say('Add your Anthropic key first — open Keys above.');
-    return;
-  }
-
-  const typed = urlField.value.trim();
-  const videoId = parseVideoId(typed);
-
-  if (!videoId && !pasted) {
-    // Someone who pasted something and got it wrong needs to know it was
-    // rejected, not be told to paste — which is what they just did.
-    say(typed
-      ? "That doesn't look like a YouTube link."
-      : 'Paste a YouTube link, or paste the text yourself.');
-    return;
-  }
-
-  state.busy = true;
-  state.error = '';
-  view.querySelector('#go').disabled = true;
-  view.querySelector('#go').textContent = 'Working…';
-
-  try {
-    let text = pasted;
-    let title = '';
+  go.addEventListener('click', () => {
+    const text = box.value.trim();
 
     if (!text) {
-      if (!keys.youtube) {
-        throw new Error('A YouTube Data API key is needed to read a link. Add one, or paste the text instead.');
-      }
-      say('Reading the video…');
-      const video = await fetchVideoText(videoId, keys.youtube);
-      title = video.title;
-      text = `Title: ${video.title}\nLength: ${video.duration}\n\n${video.description}`;
-
-      if (video.description.trim().length < 40) {
-        throw new Error('That video has almost no description to read. Use “Show transcript” on YouTube and paste it into the box.');
-      }
+      view.querySelector('#status').textContent = 'Paste the description first.';
+      return;
     }
 
-    say('Working out the routine…');
-    const result = await analyse(text, catalog, keys.anthropic);
+    const result = parseDescription(text, catalog);
 
-    if (result.name === 'Imported routine' && title) {
-      result.name = title.slice(0, 40);
+    if (!result.found && findUrl(text) && text.length < 200) {
+      // The most common mistake, and worth naming rather than answering with
+      // the generic "nothing found".
+      state.text = text;
+      state.error = 'That is just the link — paste the description text as well.';
+      paint(view, catalog);
+      return;
     }
 
+    state.text = text;
+    state.url = findUrl(text);
     state.result = result;
-    state.videoId = videoId;
     state.step = 'review';
-    state.busy = false;
     paint(view, catalog);
-  } catch (error) {
-    state.busy = false;
-    state.error = error.message || 'Something went wrong.';
-    paint(view, catalog);
-  }
+  });
 }
 
 function wireReview(view, catalog) {
-  const again = view.querySelector('#again');
-  again?.addEventListener('click', () => {
-    state = { step: 'form', error: '', result: null, videoId: null, busy: false };
+  view.querySelector('#again')?.addEventListener('click', () => {
+    state.step = 'form';
+    state.error = '';
+    state.result = null;
     paint(view, catalog);
   });
 
-  const save = view.querySelector('#save');
-  save?.addEventListener('click', async () => {
-    const useInterval = view.querySelector('#use-interval')?.checked;
-    if (useInterval) {
+  view.querySelector('#save')?.addEventListener('click', () => {
+    if (view.querySelector('#use-interval')?.checked) {
       const seconds = suggestedInterval(state.result.items);
-      // Imported late so a routine that is never saved does not touch prefs.
-      const { setPrefs } = await import('./store.js');
       if (seconds) setPrefs({ intervalSeconds: seconds });
     }
 
-    const record = saveCustomRoutine(toRoutine(state.result, state.videoId));
-    // The model gets things wrong, and the screen that fixes them exists.
+    const record = saveCustomRoutine(toRoutine(state.result, state.url));
+    // The parser gets things wrong, and the screen that fixes them exists.
     location.hash = `#/build/${record.id}`;
   });
 }

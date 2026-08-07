@@ -17,7 +17,6 @@ in two:
 |---|---|---|
 | HTML / CSS / JS / Tailwind / DaisyUI | In the browser | GitHub Pages |
 | Python (`tools/build_catalog.py`) | **Build time**, on a laptop | Never shipped |
-| Claude API | In the browser, with the **user's own** key | Phase 8 |
 | Flask | Optional local preview + optional self-host later | Phase 11 |
 | Supabase | In the browser via `@supabase/supabase-js` | Phase 12 |
 
@@ -26,10 +25,11 @@ functionality first, server last. It is not a compromise — Supabase is reached
 the browser directly, so **Omnia never needs Flask in production.** Phase 11 exists
 only for people who would rather self-host than use Supabase.
 
-Phase 8 is the one place this gets uncomfortable, and it is worth saying plainly:
-importing a routine from a video needs a model, a model needs a key, and a key in
-a static site is public. The answer is that the key belongs to the user and the
-feature is optional — see the phase for why that is the only shape that fits here.
+Phase 8 looked like the exception and turned out not to be. Importing a routine
+from a video seemed to need a model, and a model needs a key, and a key in a
+static site is public. It needed neither: creators already write the routine
+into the description, and text that regular can just be parsed. **The table
+above still has no runtime row, which is the point.**
 
 Until Phase 12, all user data lives in `localStorage`. That means it is per-device
 and survives refreshes but not a new phone. Phase 12 is what fixes that.
@@ -195,70 +195,69 @@ there is currently no way to detect it from a web app.
 Paste a YouTube link, let a model read the workout out of it, and get back a
 custom routine — exercises in order, with the breaks the video actually takes.
 
-### The honest constraint, after testing it
+### Three designs, and why the third one shipped
 
-The first draft of this phase assumed a server-side `web_fetch` could pull the
-video's text, sidestepping CORS. **That was checked and it does not work.**
-Fetching a watch page server-side returns the title and nothing else: the
-description and chapter list live in a `ytInitialData` JSON blob inside a
-`<script>` tag, which every HTML-to-text pass discards. YouTube also bot-walls
-datacenter IPs. The plan was wrong, so the plan changed.
+**Draft one** assumed a server-side `web_fetch` could pull the video's text,
+sidestepping CORS. Checked, and it does not work: a watch page fetched that way
+returns the title and nothing else, because the description and chapters live
+in a `ytInitialData` JSON blob inside a `<script>` tag that every HTML-to-text
+pass discards.
 
-Captions are worse, and worth stating separately because it is a *policy* wall
-rather than a technical one: `captions.list` works with a plain key, but
-**`captions.download` requires OAuth from the video's owner.** There is no
-key-only path to a stranger's transcript, and no amount of cleverness produces
-one.
+**Draft two** used the YouTube Data API for the description and a model to read
+it, both called from the browser with the user's own keys. It worked. It also
+required a high schooler to hold an Anthropic API key, which is a wall no
+amount of engineering gets over.
 
-What survives, and what the shipped feature uses:
+**What shipped** reads the description as text and needs nothing at all. The
+creator has already written the routine out:
 
-- **`videos.list` on the YouTube Data API.** CORS-enabled, works with a
-  referrer-restricted key, returns title + description. Workout descriptions
-  very often carry timestamped chapters, and that is the routine.
-- **The Anthropic API, called from the browser with the user's own key**
-  (`anthropic-dangerous-direct-browser-access`). It is defensible only because
-  the key is theirs. Import is opt-in and never gates the two features that
-  already work.
-- **A paste box, which is not a consolation prize.** For videos that keep the
-  routine on screen rather than in the description, it is the *only* path — and
-  it needs no YouTube key at all.
+```
+Workout // 30s work, no rest
+00:09 - Full Extension Crunches
+00:39 - Eagle Crunches
+```
 
-The remaining limit is not technical: **almost no high schooler has an
-Anthropic API key.** Realistically this ships for Justin and Owen. If that
-proves true, the better shape is a build-time `tools/import_video.py` that
-commits routines to the repo — `yt-dlp` can reach captions no browser can, and
-users would need no key at all. Recorded here so the option is not relitigated
-from scratch.
+The exercises are the lines; the intervals are the gaps between the timestamps.
+That list is regular enough to parse directly, so it is parsed directly — no
+key, no account, no network, no cost, works offline, and it cannot invent an
+exercise that was never in the text.
+
+The cost is honest and worth stating: **the description has to be pasted.** A
+browser cannot read a YouTube page, and captions are shut by *policy* rather
+than by CORS — `captions.download` needs OAuth from the video's owner, so
+nothing will ever fetch a stranger's transcript. Videos that keep the routine
+on screen and never write it down cannot be imported at all.
 
 ### Import ✅
 
-- [x] Keys pane: paste, save, clear, shown masked. Plain text about where they
-      live and who can read them — this is someone's money and someone's secret
-- [x] Stored under **`omnia.keys.v1`**, deliberately *not* in `omnia.v1`, so the
-      Phase 12 Supabase sync can never carry a key to a server
-- [x] Paste a link → `videos.list` reads title + description → the model returns
-      exercises in order, with per-exercise seconds and the rests between them
-- [x] Paste-the-text path for everything a link cannot reach
-- [x] `claude-opus-5` from `app/assets/js/importer.js`, with
-      `output_config.format` so the answer is a routine rather than prose to
-      parse. `catalogId` is an **enum of the real ids** — an invented id cannot
-      come back, and it is re-checked anyway
-- [x] `found: false` is a first-class answer, so a video with no routine in it
-      says so instead of inventing one
-- [x] Match each extracted name against the catalog; anything with no match
-      becomes a `customExercises` entry, exactly as the builder's "add your own"
-      already does. **No new routine shape**
-- [x] Land in the builder, not the player. The model will get things wrong, and
-      the edit screen that fixes them already exists
+- [x] Paste the description → exercises in order, with the interval each ran for
+- [x] **No API key, no network, no account.** Pure parsing in
+      `app/assets/js/importer.js`
+- [x] Reads `00:09 - Name`, `0:30 Name`, en/em dashes, pipes, colons, brackets,
+      and hour-long timestamps; sorts by time so a stray line cannot produce a
+      negative interval
+- [x] A stated header (`30s work, no rest`, `45s on / 15s off`) **beats the
+      gaps**, because a gap is work plus whatever rest followed it
+- [x] Rest lines are recognised and kept out of the exercise list
+- [x] Timestamped lines that are not exercises — intro, outro, subscribe,
+      socials — are dropped
+- [x] Catalog matching scores on how much of the *catalog* name is present, so
+      "Slow Flutter Kicks" finds Flutter Kicks. At least one matched word must
+      be distinctive, so "Low Plank Hold" stays a Plank instead of drifting to
+      "Hollow Body Hold"
+- [x] Anything with no honest match becomes a `customExercises` entry, exactly
+      as the builder's "add your own" does. **No new routine shape**
+- [x] Land in the builder, not the player — the parser gets things wrong and the
+      edit screen that fixes them already exists
 - [x] Detected timings shown in review and kept on `routine.source.detected`;
       offers to set the 30s/45s interval to match what the video used
+- [x] Any YouTube link in the pasted text is kept, so the routine points home
 - [x] Reached from **Routines → "Import routine from YouTube video"**
-- [x] `tests/importer.test.html` — link shapes, refusals, truncation, bad ids,
-      clamping, and the thinking-block-first response
-- [x] Every failure is a sentence, not a stack trace: no key, bad key, rate
-      limited, bad link, empty description, nothing that looks like a workout
-- [x] Nothing about import may break the app for someone who never uses it — no
-      key means the button explains itself, and that is the end of it
+- [x] `tests/importer.test.html` — 47 assertions over the worked example, line
+      shapes, header forms, gap arithmetic, rests, and the near-miss matches
+- [x] Every failure is a sentence: nothing pasted, a link on its own, or text
+      with no timestamped exercises in it
+- [x] Nothing about import can break the app for someone who never opens it
 
 ### Timed breaks mid-routine ⬜
 

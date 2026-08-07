@@ -26,18 +26,17 @@ If a change needs a server to answer a request, it cannot ship on Pages. So:
 - **Ships to the browser:** HTML, CSS, JS, Tailwind, DaisyUI
 - **Runs at build time only:** `tools/build_catalog.py`. Its output is committed;
   nobody needs Python to deploy.
-- **Called from the browser, with the user's own key:** the YouTube Data API and
-  the Anthropic API (Phase 8). Both are CORS-enabled, so Pages stays sufficient —
-  but see the video-import rules below for what this does and does not buy.
 - **Later, optional:** Flask (Phase 11, self-host only), Supabase (Phase 12, called
   from the browser — so Pages stays sufficient)
 
 **Do not add a runtime Python dependency to `app/`.** It will 404 on Pages.
 
-**The test for "can this ship" is not "is there an API for it" but "can the
-browser reach that API".** Video import is the worked example: the model call
-is fine, and reading a YouTube page directly is impossible — same feature, two
-different answers.
+**There is no API key anywhere in `app/`, and there should never be one.** Video
+import was designed twice: once around a model call with a user-supplied key,
+and then again as a parser that reads the pasted text locally. The second is
+better on every axis that matters here — it costs nothing, runs offline, needs
+no account, and cannot invent an exercise that was not in the text. Reach for
+plain parsing before reaching for an API.
 
 ## Buildless on purpose
 
@@ -82,7 +81,6 @@ Omnia/
         ├── img/                  # hero + placeholder art (SVG)
         └── js/
             ├── store.js          # localStorage; the only thing that persists
-            ├── keys.js           # the two API keys — a SEPARATE storage key
             ├── catalog.js        # loads + indexes the JSON, resolves routines
             ├── routines.js       # list + preview
             ├── builder.js        # build/edit your own routine
@@ -195,44 +193,32 @@ These came from the product owner directly. Changing one is a product decision.
   rebuilds every `<img>`, which flickers on each keystroke.
 
 **Video import** (Phase 8, `importer.js`)
-- **Nothing watches the video, and the UI must never imply otherwise.** Two
-  walls, and they are not the same wall:
-  - A browser cannot read a YouTube page. No CORS headers, and the markup it
-    would get is an empty shell — the description lives in a `<script>` JSON
-    blob that any HTML-to-text pass discards. Verified, not assumed.
+- **It parses pasted text. It does not fetch, and the UI must never imply it
+  does.** Two separate walls, both checked rather than assumed:
+  - A browser cannot read a YouTube page — no CORS headers, and the markup is
+    an empty shell whose description lives in a `<script>` JSON blob that any
+    HTML-to-text pass discards.
   - Captions are shut by **policy**: `captions.download` needs OAuth from the
-    video's *owner*. No key will ever fetch a stranger's transcript. Do not go
+    video's *owner*. Nothing will ever fetch a stranger's transcript. Don't go
     looking for a clever way around this one; there isn't one.
-- What is reachable is the Data API's `videos.list` — CORS-enabled, plain key,
-  returns title + description. Workout descriptions often carry timestamped
-  chapters, and that is what gets read.
-- **The paste box is not a fallback to tidy away.** It is the only path that
-  works for videos whose routine is on screen rather than in the description,
-  and it needs no YouTube key at all.
-- `found: false` in the schema exists so "this text has no workout in it" is a
-  real answer. A hallucinated routine is worse than none — somebody will try to
-  do it.
-- `catalogId` is an **enum of the real ids**, so an invented id cannot come
-  back. It is still re-checked against `byId`; the schema guarantees shape, not
-  sense.
-- Read the **text block**, not `content[0]` — thinking is on by default on
-  `claude-opus-5` and the first block is usually a thinking block. Check
-  `stop_reason` for `refusal`/`max_tokens` *before* touching `content`.
-- Imports land in the **builder**, never the player. The model gets things
+- The input is the description a creator already wrote:
+  `00:39 - Eagle Crunches`. **The exercises are the lines and the intervals are
+  the gaps between the timestamps** — that is the entire idea.
+- **A stated header beats the gaps.** `45s on, 15s off` means 60-second gaps,
+  and reading those as the exercise length would make every interval a quarter
+  too long.
+- Matching scores on how much of the *catalog* name is present, so a
+  description's extra adjectives don't count against it ("Slow Flutter Kicks"
+  → Flutter Kicks). At least one matched word must be **distinctive** —
+  without that rule "Low Plank Hold" lands on "Hollow Body Hold" on the
+  strength of the word "hold", which is a coincidence, not a match.
+- Anything with no honest match is kept as the user's own exercise, exactly as
+  the builder's "add your own" does. Nothing is silently dropped.
+- Imports land in the **builder**, never the player. The parser gets things
   wrong and the screen that fixes them already exists.
 - Detected per-exercise seconds are kept on `routine.source.detected` but are
   **not played back** — the player runs one interval for the whole routine.
   Wiring them up is the timed-break half of Phase 8.
-
-**API keys**
-- They live under their own localStorage key, **`omnia.keys.v1` — never in
-  `omnia.v1`**. Phase 12 syncs the shape of `omnia.v1` to Supabase, and a key
-  that rode along in it would be uploaded the moment accounts ship.
-- The key is the **user's own**. This only works because of that; the
-  `anthropic-dangerous-direct-browser-access` header would be indefensible
-  with a key of ours in the bundle.
-- Say plainly, in the UI, that anything running script on the origin can read
-  them. That is the real cost of no server, and it is not ours to hide.
 
 **Chrome**
 - Header: `Omnia` wordmark + hero image, with the tagline and version above it
