@@ -257,20 +257,29 @@ button, .rail__link, .tabbar__link, .routine-card, .cal__day {
   left: 75%;
   top: 50%;
   transform: translate(-50%, -50%);
-  /* ~190px on desktop. The 96px floor is for phones, where the proportional
-     size would be 77px — below where this artwork reads. Mobile legibility
-     beats strict ring alignment; at 96px the disc sits between the inner and
-     middle rings, which the ringed artwork absorbs. */
-  width: clamp(96px, 20%, 200px);
-  aspect-ratio: 1;
+  /* Measured against the banner's *height*, not its width, so the wash always
+     fills the same share of the artwork it sits in — about 217px tall on
+     desktop and reaching roughly the middle ring. The 104px floor is for
+     phones, where the proportional size would be too small for the faces to
+     read; the ceiling stops it outgrowing the banner on a tall window.
+     Width follows the image, because these are irregular washes and forcing
+     a common aspect ratio would visibly squash them. */
+  height: clamp(104px, 86%, 232px);
+  /* Explicit, not shrink-to-fit. An absolutely positioned box with `width:
+     auto` and only `left` set is clamped to the space remaining on that side
+     — 25% of the banner — which is narrower than the artwork and leaves the
+     image overflowing its own button. The six washes differ in ratio by under
+     a percent, so one value covers them all and object-fit absorbs the rest. */
+  aspect-ratio: 440 / 371;
+  width: auto;
   padding: 0;
   border: 0;
   background: none;
-  border-radius: 50%;
+  border-radius: 12px;
   cursor: pointer;
   line-height: 0;
 }
-.rank__art { width: 100%; height: 100%; display: block; }
+.rank__art { width: 100%; height: 100%; display: block; object-fit: contain; }
 
 .rank:focus-visible {
   outline: 2px solid var(--color-primary);

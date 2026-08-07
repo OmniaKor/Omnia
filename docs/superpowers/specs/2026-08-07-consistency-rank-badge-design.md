@@ -81,14 +81,23 @@ Follows `build_catalog.py`: run by hand, output committed, no runtime Python.
 - Splits on an even 3×2 grid — 455×384 per tile. Gutters were measured at
   x≈456 and x≈915, y≈383, so an even split is correct; trim **4 px** per edge to
   drop the seam.
-- Crops each tile to its centred square, resizes to **400×400**, and applies an
-  antialiased circular alpha mask (mask rendered at 4× and downsampled).
-- Writes WebP at quality 82 to `app/assets/img/streak/`, named by rank.
+- Keys the paper background to transparency, crops to the remaining paint, and
+  writes WebP at quality 82 to `app/assets/img/streak/`, named by rank. Long
+  edge 440; height varies, because the washes do.
 
-**Circle mask, not the square tile.** The tiles have paper-white backgrounds; a
-white square on the cream ground reads as a patch of missing page. A disc also
-matches what `hero.svg` already draws — concentric rings — so the icon becomes the
-planet inside them.
+**Paper keyed out, not a circular mask.** *(Revised after the first build — the
+original spec called for a circle.)* The tiles are watercolour on white paper,
+and a white square on the cream ground reads as a patch of missing page. A
+circle solves that but costs the best thing about the artwork: the painted edge
+is a fade, and a hard mask clips it into a rubber stamp.
+
+Instead, `paperness` scores each pixel on being *both* bright and near-neutral —
+both conditions are needed, since the pale planets and the white stars are
+bright too. A flood fill inwards from the tile border marks the background;
+enclosed highlights are never reached, so they survive. Alpha is then a **ramp**
+over paperness rather than a threshold, so where the wash thins out the pixels
+go correspondingly transparent and the edge dissolves into the cream exactly as
+it does into the paper.
 
 **WebP, not PNG.** Measured on the real artwork: 20 KB per icon versus 284 KB as
 PNG, for the same 400 px. All six total 121 KB. WebP with alpha is Safari 14+.
@@ -180,15 +189,21 @@ distorted and the vertical centre is fixed by symmetry. So `left: 75%; top: 50%;
 transform: translate(-50%, -50%)` pins the icon to the circle at every width, with
 no per-breakpoint math and no JS measurement.
 
-**Size.** `width: clamp(96px, 20%, 200px)` with `aspect-ratio: 1`. The percentage
-resolves against the image box: ~190 px on desktop, and the 96 px floor catches
-phones, where strict proportional sizing would give 77 px.
+**Size.** *(Revised: the first build sized off the banner's width and was too
+small to show the artwork off.)* `height: clamp(104px, 86%, 232px)` with
+`aspect-ratio: 440 / 371`. Measuring against the banner's **height** keeps the
+wash filling the same share of the artwork it sits in — about 217 px tall on
+desktop, reaching roughly the middle ring, and 105 px on a phone.
 
-77 px was tested against the real art and is below where these read. 96 px on a
-phone is slightly wider than the inner ring, so the icon sits between the inner
-and middle rings — the artwork is itself ringed, so it absorbs this. **Mobile
-legibility beats strict ring alignment**; "it must work on mobile" is a stated
-requirement and ring geometry is not.
+The aspect ratio must be explicit. An absolutely positioned box with `width:
+auto` and only `left` set is shrink-to-fit, and shrink-to-fit clamps it to the
+space remaining on that side — 25% of the banner — which is narrower than the
+artwork and leaves the image overflowing its own button, breaking both the
+centring and the tap target. The six washes differ in ratio by under a percent,
+so one value covers them all and `object-fit: contain` absorbs the remainder.
+
+**Mobile legibility beats strict ring alignment**; "it must work on mobile" is a
+stated requirement and ring geometry is not.
 
 The masthead's `core` wordmark occupies x 80–360 of the viewBox, so the icon at
 x 900 never collides with it.

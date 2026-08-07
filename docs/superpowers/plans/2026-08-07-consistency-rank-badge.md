@@ -10,6 +10,26 @@
 
 **Spec:** `docs/superpowers/specs/2026-08-07-consistency-rank-badge-design.md`
 
+## Amendments made during execution
+
+The tasks below are left as written. These three things changed while building,
+and the spec has been updated to match:
+
+1. **The artwork is not circle-masked.** A circle clips the watercolour fade,
+   which is the best thing about it. `slice_streak_icons.py` now keys the paper
+   to transparency — a paperness ramp plus a flood fill inwards from the tile
+   border — so each wash keeps its painted edge. Icons are ~440×371 with a
+   varying height, not 400×400 squares. Task 1's code block is superseded by
+   the file on disk.
+2. **The badge is sized off the banner's height, not its width**, and is
+   considerably larger: `height: clamp(104px, 86%, 232px)` with an explicit
+   `aspect-ratio: 440 / 371`. The aspect ratio is load-bearing — see the spec.
+   Ships as **`v7.09`**, not `v7.08`; the resize was a second visible change.
+3. **Verification uses `serve.py`, never `python -m http.server`.** Only the
+   former sends `Cache-Control: no-store`. With plain `http.server` the browser
+   applies heuristic freshness and serves back the JS you just edited, which
+   presents as the feature simply not working.
+
 ## Global Constraints
 
 - **GitHub Pages is static hosting.** Nothing under `app/` may need Python at request time. Pillow is build-time only, like `requests`.
@@ -464,10 +484,14 @@ document.getElementById('summary').textContent =
 Serve the **repository root**, not `app/` — the test imports `../app/assets/js/streak.js`.
 
 ```bash
-python -m http.server 8000
+python serve.py --tests --no-browser
 ```
 
 Open `http://localhost:8000/tests/streak.test.html`.
+
+**Use `serve.py`, not `python -m http.server`.** Only `serve.py` sends
+`Cache-Control: no-store`; plain `http.server` lets the browser apply heuristic
+freshness and hand you back the JS you just edited.
 
 Expected: the page stays on `running…` and the browser console shows a 404 for `streak.js`. That is the failure — the module does not exist yet.
 
@@ -643,7 +667,7 @@ The old body walked backwards day by day calling `dayStatus`. `streak.js` owns t
 - [ ] **Step 4: Verify the calendar still reads the same**
 
 ```bash
-python -m http.server 8000 --directory app
+python serve.py --no-browser
 ```
 
 Open `http://localhost:8000/#/calendar`. With no history the heading under "Calendar" reads `No streak yet`. Then seed a two-day streak in the console, using yesterday and today so the dates stay valid whenever this is run:
@@ -923,7 +947,7 @@ In `boot()`, after `applyTheme();`, add:
 - [ ] **Step 6: Verify in a browser at both sizes**
 
 ```bash
-python -m http.server 8000 --directory app
+python serve.py --no-browser
 ```
 
 Open `http://localhost:8000/#/routines`.
@@ -1142,7 +1166,7 @@ changed:
 - [ ] **Step 4: Verify offline**
 
 ```bash
-python -m http.server 8000 --directory app
+python serve.py --no-browser
 ```
 
 Load `http://localhost:8000/#/routines`, then in DevTools → Application → Service Workers, tick **Offline** and reload.
@@ -1152,7 +1176,7 @@ Expected: the app loads and the planet renders from cache.
 - [ ] **Step 5: Run every test suite once more**
 
 ```bash
-python -m http.server 8000
+python serve.py --tests --no-browser
 ```
 
 Open each and confirm the summary line:
