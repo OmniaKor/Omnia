@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omnia — streak tests</title>
+<style>
+  body { font: 14px ui-monospace, monospace; padding: 1.5rem; line-height: 1.7; }
+  .pass::before { content: "PASS  "; color: #1f6a42; }
+  .fail::before { content: "FAIL  "; color: #8f2010; }
+  .fail { color: #8f2010; }
+  h1 { font: 600 16px ui-monospace, monospace; }
+  #summary { margin-top: 1rem; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>streak — the consistency ladder</h1>
+<div id="out"></div>
+<div id="summary">running…</div>
+
+<script type="module">
+/*
+  The ladder is a product decision, not an implementation detail, so it is
+  pinned here. `today` is an argument to streakState, so every boundary is
+  exact without a fake clock and without touching localStorage.
+*/
+
+const results = [];
+const ok = (name, condition, detail = '') => results.push({ name, condition, detail });
+
+const { streakState, RANKS } = await import('../app/assets/js/streak.js');
+
+/** Completed sessions on the given days. */
+const done = (...days) => days.map((d) => ({ status: 'completed', localDate: d }));
+/** Quit sessions on the given days. */
+const quit = (...days) => days.map((d) => ({ status: 'quit', localDate: d }));
+
+/* ── Nothing yet ────────────────────────────────────────────────────── */
+
+{
+  const s = streakState([], '2026-08-07');
+  ok('no sessions → unranked B', s.rank === 'B' && s.unranked === true, JSON.stringify(s));
+  ok('no sessions → streak 0, best 0', s.streak === 0 && s.best === 0, JSON.stringify(s));
+  ok('no sessions → daysSince null', s.daysSince === null, JSON.stringify(s));
+}
+
+{
+  const s = streakState(quit('2026-08-06', '2026-08-07'), '2026-08-07');
+  ok('quit only → still unranked; quitting is not a streak day',
+     s.unranked === true && s.streak === 0, JSON.stringify(s));
+}
+
+/* ── Climbing ───────────────────────────────────────────────────────── */
+
+{
+  const s = streakState(done('2026-08-07'), '2026-08-07');
+  ok('finished today, streak 1 → ranked B',
+     s.rank === 'B' && s.unranked === false && s.streak === 1, JSON.stringify(s));
+}
+
+{
+  const s = streakState(done('2026-08-06', '2026-08-07'), '2026-08-07');
+  ok('streak 2 → B', s.rank === 'B' && s.streak === 2, JSON.stringify(s));
+}
+
+{
+  const s = streakState(done('2026-08-05', '2026-08-06', '2026-08-07'), '2026-08-07');
+  ok('streak 3 → A', s.rank === 'A' && s.streak === 3, JSON.stringify(s));
+}
+
+{
+  const days = ['2026-08-02', '2026-08-03', '2026-08-04', '2026-08-05', '2026-08-06', '2026-08-07'];
+  const s = streakState(done(...days), '2026-08-07');
+  ok('streak 6 → still A', s.rank === 'A' && s.streak === 6, JSON.stringify(s));
+}
+
+{
+  const days = ['2026-08-01', '2026-08-02', '2026-08-03', '2026-08-04',
+                '2026-08-05', '2026-08-06', '2026-08-07'];
+  const s = streakState(done(...days), '2026-08-07');
+  ok('streak 7 → S', s.rank === 'S' && s.streak === 7, JSON.stringify(s));
+}
+
+/* ── Today not done yet is not a broken streak ──────────────────────── */
+
+{
+  const s = streakState(done('2026-08-04', '2026-08-05', '2026-08-06'), '2026-08-07');
+  ok('finished yesterday, nothing today → streak alive at A',
+     s.rank === 'A' && s.streak === 3 && s.daysSince === 1, JSON.stringify(s));
+}
+
+/* ── Falling ────────────────────────────────────────────────────────── */
+
+{
+  const s = streakState(done('2026-08-05'), '2026-08-07');
+  ok('2 days since → C', s.rank === 'C' && s.daysSince === 2, JSON.stringify(s));
+  ok('broken streak reports streak 0', s.streak === 0, JSON.stringify(s));
+}
+
+{
+  const s = streakState(done('2026-08-04'), '2026-08-07');
+  ok('3 days since → C', s.rank === 'C' && s.daysSince === 3, JSON.stringify(s));
+}
+
+{
+  const s = streakState(done('2026-08-03'), '2026-08-07');
+  ok('4 days since → D', s.rank === 'D' && s.daysSince === 4, JSON.stringify(s));
+}
+
+{
+  const s = streakState(done('2026-07-31'), '2026-08-07');
+  ok('7 days since → D', s.rank === 'D' && s.daysSince === 7, JSON.stringify(s));
+}
+
+{
+  const s = streakState(done('2026-07-30'), '2026-08-07');
+  ok('8 days since → F', s.rank === 'F' && s.daysSince === 8, JSON.stringify(s));
+}
+
+/* ── Folding ────────────────────────────────────────────────────────── */
+
+{
+  const sessions = [...done('2026-08-07'), ...done('2026-08-07')];
+  const s = streakState(sessions, '2026-08-07');
+  ok('two finishes the same day count as one streak day',
+     s.streak === 1, JSON.stringify(s));
+}
+
+{
+  // The calendar's green-beats-yellow rule, seen from the streak side.
+  const sessions = [...quit('2026-08-07'), ...done('2026-08-07')];
+  const s = streakState(sessions, '2026-08-07');
+  ok('quit then finished the same day still counts',
+     s.streak === 1 && s.unranked === false, JSON.stringify(s));
+}
+
+{
+  const sessions = done('2026-08-01', '2026-08-02', '2026-08-03', '2026-08-07');
+  const s = streakState(sessions, '2026-08-07');
+  ok('best survives a break', s.best === 3 && s.streak === 1, JSON.stringify(s));
+}
+
+{
+  const s = streakState(done('2026-08-07', '2026-08-01', '2026-08-06'), '2026-08-07');
+  ok('unsorted input is folded correctly',
+     s.streak === 2 && s.rank === 'B', JSON.stringify(s));
+}
+
+/* ── Awkward clocks ─────────────────────────────────────────────────── */
+
+{
+  // A device clock moved backwards must not rank someone above S.
+  const s = streakState(done('2026-08-09'), '2026-08-07');
+  ok('a future-dated session clamps daysSince to 0',
+     s.daysSince === 0 && s.rank === 'B', JSON.stringify(s));
+}
+
+{
+  // 8 March 2026 is a DST change in US zones: that local day is 23 hours long,
+  // so a truncated day difference would fuse 7 and 9 March into one streak day.
+  const s = streakState(done('2026-03-07', '2026-03-08', '2026-03-09'), '2026-03-09');
+  ok('a streak across a DST change stays contiguous',
+     s.streak === 3 && s.rank === 'A', JSON.stringify(s));
+}
+
+{
+  const s = streakState(done('2026-07-31', '2026-08-01', '2026-08-02'), '2026-08-02');
+  ok('a streak across a month boundary stays contiguous',
+     s.streak === 3 && s.rank === 'A', JSON.stringify(s));
+}
+
+/* ── Shape ──────────────────────────────────────────────────────────── */
+
+ok('RANKS is best-first',
+   JSON.stringify(RANKS) === JSON.stringify(['S', 'A', 'B', 'C', 'D', 'F']),
+   JSON.stringify(RANKS));
+
+/* ── Report ─────────────────────────────────────────────────────────── */
+
+document.getElementById('out').innerHTML = results
+  .map((r) => `<div class="${r.condition ? 'pass' : 'fail'}">${r.name}${
+    r.condition ? '' : ` — got ${r.detail}`}</div>`)
+  .join('');
+
+const failed = results.filter((r) => !r.condition).length;
+document.getElementById('summary').textContent =
+  failed === 0
+    ? `ALL PASS — ${results.length} assertions`
+    : `${failed} FAILED of ${results.length}`;
+</script>
+</body>
+</html>
