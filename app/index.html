@@ -59,7 +59,12 @@
        scrolling one. -->
   <header class="site-head">
     <div class="site-head__bar">
-      <p class="type-label">Daily core · 10 minutes</p>
+      <!-- The version is a change counter, not semver. Major is the last phase
+           finished, minor climbs by one every time a prompt changes something.
+           See CLAUDE.md → Versioning; this element is the only place it lives. -->
+      <p class="type-label">Daily core · 10 minutes
+        <span class="site-head__version" id="version">· v7.07</span>
+      </p>
       <button id="theme-toggle" class="theme-toggle" type="button"
               aria-label="Switch between light and dark">
         <span aria-hidden="true">◐</span>

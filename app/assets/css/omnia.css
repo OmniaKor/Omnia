@@ -189,6 +189,15 @@ button, .rail__link, .tabbar__link, .routine-card, .cal__day {
   gap: 1rem;
 }
 
+/* The version rides with the tagline at the same size, and is allowed to drop
+   to its own line on a narrow phone — the two together are wider than a 320px
+   screen has room for beside the theme toggle. `nowrap` keeps the number
+   itself from being the thing that breaks. */
+.site-head__version {
+  white-space: nowrap;
+  opacity: 0.72;
+}
+
 .theme-toggle {
   background: none;
   border: 1px solid color-mix(in srgb, var(--color-base-content) 18%, transparent);

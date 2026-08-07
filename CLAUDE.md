@@ -184,10 +184,46 @@ These came from the product owner directly. Changing one is a product decision.
   rebuilds every `<img>`, which flickers on each keystroke.
 
 **Chrome**
-- Header: `Omnia` wordmark + hero image
+- Header: `Omnia` wordmark + hero image, with the tagline and version above it
 - Footer: `created by: Justin Li and Owen Zhang Track c/o 2026.`
 - **Minimal text in the margins.** Explanations stay short. This was asked for
   explicitly — resist the urge to add helpful paragraphs.
+
+---
+
+## Versioning — bump it every time
+
+The masthead carries a version next to `Daily core · 10 minutes`, at the same
+size, on both phone and desktop. It reads `v7.07` today.
+
+**It lives in exactly one place: `id="version"` in `app/index.html`.** Do not
+add a second copy anywhere — a version printed in two places is a version that
+disagrees with itself.
+
+```
+v<phase>.<change>      →   v7.07
+   │        └── two digits, zero-padded, +1 per change
+   └── the last phase finished (ROADMAP.md), NOT the one in progress
+```
+
+**Every prompt that changes something shippable increments the minor by one.**
+7.07 → 7.08 → 7.09 → 7.10. Do this in the same edit as the change itself, not
+as a follow-up — a bump that gets forgotten makes the number worse than useless,
+because it now lies.
+
+- **Reset the minor to `01` when a phase lands**, and raise the major with it.
+  Finishing Phase 8 means the next version is `v8.01`, not `v8.08`.
+- It rolls straight past `.99` into three digits if it has to. The count is
+  the point; the padding is only there so early numbers sort and read evenly.
+- **Not semver.** Nothing here communicates compatibility — it is a "how much
+  has happened" counter that the two of us can point at.
+- **Do not bump for changes nobody can see**: a prompt that only edits
+  `ROADMAP.md`, `CLAUDE.md`, or a comment ships no behaviour, so it ships no
+  version. The number tracks the app, not the conversation.
+- **Do not tie it to `CACHE` in `sw.js`.** That constant exists to drop stale
+  precached assets, and bumping it every prompt would throw away every cached
+  exercise photograph along with it. Same-origin requests are network-first, so
+  a deploy shows the new version immediately without touching the cache.
 
 ---
 
