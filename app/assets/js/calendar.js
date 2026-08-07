@@ -12,7 +12,8 @@
  * nothing, and it buries the streak they do have.
  */
 
-import { dayStatus, firstActiveDate, localDate, sessionsOn } from './store.js';
+import { allSessions, dayStatus, firstActiveDate, localDate, sessionsOn } from './store.js';
+import { streakState } from './streak.js';
 import { esc, prettyDate } from './ui.js';
 
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -153,19 +154,13 @@ function showDetail(node, dateKey, names) {
   `;
 }
 
-/** Consecutive days ending today (or yesterday) with a finished routine. */
+/**
+ * Consecutive days ending today (or yesterday) with a finished routine.
+ *
+ * The walk lives in streak.js, which the masthead badge reads too. Two counts
+ * of the same thing is one count that can disagree with the squares.
+ */
 function streakLabel() {
-  let streak = 0;
-  const day = new Date();
-
-  // Today not being green yet shouldn't read as a broken streak at 9am, so
-  // start counting from yesterday when today is still empty.
-  if (dayStatus(localDate(day)) !== 'green') day.setDate(day.getDate() - 1);
-
-  while (dayStatus(localDate(day)) === 'green') {
-    streak += 1;
-    day.setDate(day.getDate() - 1);
-  }
-
+  const { streak } = streakState(allSessions(), localDate());
   return streak === 0 ? 'No streak yet' : `${streak} day streak`;
 }
