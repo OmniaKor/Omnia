@@ -323,10 +323,19 @@ These are from Phase 6 and are the reason the audio has never broken a workout:
 - [ ] Haptics suppressed when muted
 - [ ] Music is a toggle, and off means silent — not quieter
 
-## Phase 10 — The marshmallow: streak incentive ⬜
+## Phase 10 — Streak incentive 🟡 (the rank badge landed in v7.09)
 
-A marshmallow that lives on the calendar screen and is happy while the streak is
-alive. Miss too long and it gets sad. Come back and it cheers up.
+A mascot that is happy while the streak is alive. Miss too long and it gets sad.
+Come back and it cheers up.
+
+**What shipped, and how it differs from the sketch below.** The marshmallow
+became six watercolour planets ranked **S A B C D F**, and it lives in the
+masthead circle on every screen with a header rather than on the calendar.
+Climbing is earned by streak length; falling is measured by absence. The three
+limits in "Say the quiet part first" carried over unchanged — they are the
+reason the feature is shaped this way, not decoration on top of it.
+
+Design: `docs/superpowers/specs/2026-08-07-consistency-rank-badge-design.md`
 
 ### Say the quiet part first
 
@@ -350,33 +359,36 @@ user.
 
 ### Streak
 
-- [ ] Streak computed from `sessions`, folded by `localDate` — **the same fold
+- [x] Streak computed from `sessions`, folded by `localDate` — **the same fold
       the calendar already does.** One source of truth; a second streak counter
-      that can disagree with the squares is a bug generator.
-- [ ] `localDate`, never `finishedAt`. An 11pm workout keeps the streak for that
+      that can disagree with the squares is a bug generator. `calendar.js` had
+      grown its own walk and now reads `streak.js` instead.
+- [x] `localDate`, never `finishedAt`. An 11pm workout keeps the streak for that
       day even after UTC rolls over — this is the same trap documented in the
       data model, and it is easy to walk back into here.
-- [ ] Only `completed` counts. A quit day is yellow on the calendar and is not a
+- [x] Only `completed` counts. A quit day is yellow on the calendar and is not a
       streak day.
-- [ ] Current streak and longest streak, both derived at read time. Nothing new
+- [x] Current streak and longest streak, both derived at read time. Nothing new
       persisted — `sessions` already holds everything.
 
-### The marshmallow
+### The mascot
 
-- [ ] Drawn as SVG, like the placeholder art. The repo stays text-only and it
-      works offline for free.
-- [ ] Three states — happy, uncertain, sad — driven by days since the last
-      completed workout. Sad takes more than one missed day; one skipped Tuesday
-      is not a crisis.
+- [x] Painted, not drawn: six watercolour planets sliced from one sheet by
+      `tools/slice_streak_icons.py`. Not SVG — the artwork exists and is a
+      wash. 20 KB of WebP against 284 KB of PNG paid for the exception.
+- [x] Six ranks rather than three moods, earned by streak length on the way up
+      and measured by absence on the way down. Sad still takes more than one
+      missed day: one skipped Tuesday is a C, not a crisis.
 - [ ] A small reaction on finishing a routine, seen once on the completion
-      screen. This is the reward, so it is the only place it is allowed to be big.
-- [ ] Lives on the calendar screen. It does **not** appear during the player —
+      screen. Still open — a separate surface and a separate decision.
+- [x] Lives in the masthead circle, on every screen with a header. It does
+      **not** appear during the player — the header already hides itself, so
       nothing gets between the user and the clock.
-- [ ] `prefers-reduced-motion` respected: states still change, motion does not
-- [ ] It can be turned off, and turning it off leaves the streak numbers intact.
-      Somebody will find it annoying and they should not have to leave.
-- [ ] Warm cream palette, brick accent, same hand as the rest of the app —
-      not a sticker dropped onto someone else's design
+- [x] `prefers-reduced-motion` respected: the rank still changes, motion does not
+- [x] It can be turned off, and turning it off leaves the streak numbers intact.
+      Hiding is in the badge's own reveal; the way back is on the calendar.
+- [x] The paper is keyed out to transparency, so each wash dissolves into the
+      cream ground instead of sitting on it as a pasted rectangle.
 
 **Note for Phase 13:** streak *calculation* lands here, not there. What stays in
 Social & streaks is the social half — friends, teams, sharing.
