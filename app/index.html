@@ -63,7 +63,7 @@
            finished, minor climbs by one every time a prompt changes something.
            See CLAUDE.md → Versioning; this element is the only place it lives. -->
       <p class="type-label">Daily core · 10 minutes
-        <span class="site-head__version" id="version">· v7.10</span>
+        <span class="site-head__version" id="version">· v7.11</span>
       </p>
       <button id="theme-toggle" class="theme-toggle" type="button"
               aria-label="Switch between light and dark">
@@ -85,8 +85,12 @@
                alt="" width="376" height="376" decoding="async">
         </button>
       </div>
-      <p class="rank__detail" id="rank-detail" hidden></p>
     </figure>
+
+    <!-- Outside the <figure> on purpose: daisyUI styles a bare figure as a
+         centred grid, which makes any second child a grid item stacked on top
+         of the artwork rather than a line beneath the banner. -->
+    <p class="rank__detail" id="rank-detail" hidden></p>
   </header>
 
   <!-- ── Body: nav rail + view ──────────────────────────────────────────── -->
