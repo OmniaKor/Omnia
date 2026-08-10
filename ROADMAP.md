@@ -387,8 +387,9 @@ user.
 - [x] `prefers-reduced-motion` respected: the rank still changes, motion does not
 - [x] It can be turned off, and turning it off leaves the streak numbers intact.
       Hiding is in the badge's own reveal; the way back is on the calendar.
-- [x] The paper is keyed out to transparency, so each wash dissolves into the
-      cream ground instead of sitting on it as a pasted rectangle.
+- [x] The paper is keyed out to transparency and the rim feathered to a disc,
+      so each planet sits concentric with hero.svg's rings and dissolves into
+      the cream instead of being stamped onto it.
 
 **Note for Phase 13:** streak *calculation* lands here, not there. What stays in
 Social & streaks is the social half — friends, teams, sharing.

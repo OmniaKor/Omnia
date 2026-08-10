@@ -50,9 +50,15 @@ NEUTRAL_LO, NEUTRAL_HI = 10, 46
 #: full paper so the fill can travel through the soft edge of a wash.
 REACH = 70
 
-#: Longest edge of the written icon. Downscale only — the tiles are about
-#: 447px wide and upscaling a watercolour buys nothing but bytes.
-LONG_EDGE = 440
+#: Where the circular falloff begins, as a fraction of the radius. Everything
+#: inside is untouched; from here out to the rim the wash fades to nothing.
+#: A hard circle would stamp the watercolour flat, and no circle at all left
+#: the planets sitting as rectangles among hero.svg's concentric rings.
+FADE_FROM = 0.86
+
+#: Side of the written icon. Square, because the result is a disc. Downscale
+#: only — the tiles are about 376px tall and upscaling a wash buys only bytes.
+SIZE = 376
 QUALITY = 82
 
 
@@ -137,17 +143,43 @@ def cutout(img: Image.Image) -> Image.Image:
     out = rgb.convert("RGBA")
     out.putalpha(alpha)
 
-    # Crop to the paint. The tiles carry uneven margins of blank sheet, and
-    # keeping them would make one planet float higher in the banner than the
-    # next for no reason anybody could see.
-    box = out.getbbox()
-    if box:
-        out = out.crop(box)
-
-    # Fit inside a box rather than forcing a square: these are irregular
-    # washes, and squashing them to a common aspect ratio would be visible.
-    out.thumbnail((LONG_EDGE, LONG_EDGE), Image.LANCZOS)
+    # Centre square, then the disc. The planets are painted near the middle of
+    # each tile, so squaring off the wider sides costs only background wash.
+    side = min(width, height)
+    left, top = (width - side) // 2, (height - side) // 2
+    out = out.crop((left, top, left + side, top + side))
+    out = out.resize((SIZE, SIZE), Image.LANCZOS)
+    out.putalpha(feather(out.getchannel("A")))
     return out
+
+
+def feather(alpha: Image.Image) -> Image.Image:
+    """Fade the alpha to nothing around the rim, leaving the middle alone.
+
+    The result reads as a circle — which is what puts it at home inside
+    hero.svg's rings — without the hard cut a plain mask would make. Smoothed
+    with the usual 3t^2-2t^3 curve rather than a straight line, because a
+    linear ramp leaves a visible ring where the falloff starts.
+    """
+    size = alpha.size[0]
+    radius = size / 2
+    span = 1.0 - FADE_FROM
+    px = alpha.load()
+
+    for y in range(size):
+        dy = (y + 0.5) - radius
+        for x in range(size):
+            dx = (x + 0.5) - radius
+            distance = (dx * dx + dy * dy) ** 0.5 / radius
+            if distance <= FADE_FROM:
+                continue
+            if distance >= 1.0:
+                px[x, y] = 0
+                continue
+            t = (distance - FADE_FROM) / span
+            px[x, y] = int(px[x, y] * (1.0 - t * t * (3.0 - 2.0 * t)))
+
+    return alpha
 
 
 def build() -> None:
@@ -177,15 +209,15 @@ def check() -> None:
             problems.append(f"missing {path.relative_to(ROOT)}")
             continue
         with Image.open(path) as img:
-            if max(img.size) > LONG_EDGE:
+            if img.size != (SIZE, SIZE):
                 problems.append(
-                    f"{path.relative_to(ROOT)} is {img.size}; its long edge "
-                    f"must not exceed {LONG_EDGE}"
+                    f"{path.relative_to(ROOT)} is {img.size}, expected "
+                    f"({SIZE}, {SIZE})"
                 )
-            if img.getbbox() != (0, 0, *img.size):
+            elif img.getchannel("A").getextrema()[0] != 0:
                 problems.append(
-                    f"{path.relative_to(ROOT)} has transparent margins; it "
-                    f"was not cropped to the paint"
+                    f"{path.relative_to(ROOT)} has no fully transparent "
+                    f"pixels; the corners were not faded"
                 )
             if img.mode != "RGBA":
                 problems.append(
@@ -197,7 +229,7 @@ def check() -> None:
         for problem in problems:
             print(problem, file=sys.stderr)
         sys.exit(1)
-    print(f"all {len(RANK_BY_TILE)} icons present, long edge {LONG_EDGE}, RGBA")
+    print(f"all {len(RANK_BY_TILE)} icons present at {SIZE}x{SIZE}, faded RGBA")
 
 
 def main() -> None:

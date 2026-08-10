@@ -264,22 +264,21 @@ button, .rail__link, .tabbar__link, .routine-card, .cal__day {
      read; the ceiling stops it outgrowing the banner on a tall window.
      Width follows the image, because these are irregular washes and forcing
      a common aspect ratio would visibly squash them. */
-  height: clamp(104px, 86%, 232px);
+  height: clamp(104px, 84%, 224px);
   /* Explicit, not shrink-to-fit. An absolutely positioned box with `width:
      auto` and only `left` set is clamped to the space remaining on that side
      — 25% of the banner — which is narrower than the artwork and leaves the
-     image overflowing its own button. The six washes differ in ratio by under
-     a percent, so one value covers them all and object-fit absorbs the rest. */
-  aspect-ratio: 440 / 371;
+     image overflowing its own button. */
+  aspect-ratio: 1;
   width: auto;
   padding: 0;
   border: 0;
   background: none;
-  border-radius: 12px;
+  border-radius: 50%;
   cursor: pointer;
   line-height: 0;
 }
-.rank__art { width: 100%; height: 100%; display: block; object-fit: contain; }
+.rank__art { width: 100%; height: 100%; display: block; }
 
 .rank:focus-visible {
   outline: 2px solid var(--color-primary);

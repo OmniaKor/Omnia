@@ -356,10 +356,11 @@ pip install -r requirements.txt
 python tools/slice_streak_icons.py           # writes app/assets/img/streak/
 python tools/slice_streak_icons.py --check   # verify the committed output
 ```
-The script keys the paper out to transparency by flood-filling inwards from the
-tile border, so each wash keeps its soft painted edge and dissolves into the
-cream. It is a *ramp*, not a threshold — thresholding gives every planet a hard
-cut where the paint fades out.
+Two passes, and both matter. The paper is keyed out by flood-filling inwards
+from the tile border on a *ramp*, not a threshold — thresholding gives every
+planet a hard cut where the paint fades out. Then the rim is feathered to a
+disc, because `hero.svg` draws concentric rings there and a rectangle among
+them looks pasted on. The feather is what keeps the disc from looking stamped.
 
 **Add a routine** — edit `app/assets/data/routines.json`. Exercise ids must exist in
 `exercises.json`; the build script prints every valid id with `--list`.

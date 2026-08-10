@@ -81,23 +81,31 @@ Follows `build_catalog.py`: run by hand, output committed, no runtime Python.
 - Splits on an even 3×2 grid — 455×384 per tile. Gutters were measured at
   x≈456 and x≈915, y≈383, so an even split is correct; trim **4 px** per edge to
   drop the seam.
-- Keys the paper background to transparency, crops to the remaining paint, and
-  writes WebP at quality 82 to `app/assets/img/streak/`, named by rank. Long
-  edge 440; height varies, because the washes do.
+- Keys the paper background to transparency, squares off the tile, and feathers
+  the rim into a disc. Writes 376×376 WebP at quality 82 to
+  `app/assets/img/streak/`, named by rank.
 
-**Paper keyed out, not a circular mask.** *(Revised after the first build — the
-original spec called for a circle.)* The tiles are watercolour on white paper,
-and a white square on the cream ground reads as a patch of missing page. A
-circle solves that but costs the best thing about the artwork: the painted edge
-is a fade, and a hard mask clips it into a rubber stamp.
+**A keyed, feathered disc — neither a plain circular mask nor a rectangle.**
+*(Settled after two revisions. The first build used a hard circle; the second
+dropped the circle entirely to expose the painted edges; this keeps both.)*
 
-Instead, `paperness` scores each pixel on being *both* bright and near-neutral —
-both conditions are needed, since the pale planets and the white stars are
-bright too. A flood fill inwards from the tile border marks the background;
-enclosed highlights are never reached, so they survive. Alpha is then a **ramp**
-over paperness rather than a threshold, so where the wash thins out the pixels
-go correspondingly transparent and the edge dissolves into the cream exactly as
-it does into the paper.
+Three requirements pull against each other, and each pass answers one:
+
+1. *The tiles are watercolour on white paper.* A white square on the cream
+   ground reads as a patch of missing page. So `paperness` scores each pixel on
+   being **both** bright and near-neutral — both conditions are needed, since
+   the pale planets and the white stars are bright too — and a flood fill
+   inwards from the tile border marks the background. Enclosed highlights are
+   never reached, so they survive. Alpha is a **ramp** over paperness rather
+   than a threshold, so where the wash thins out the pixels go correspondingly
+   transparent.
+2. *`hero.svg` draws concentric rings at this exact spot.* A rectangle sitting
+   among them looks pasted on, so the result is squared and masked to a circle,
+   concentric with the rings.
+3. *A hard circle stamps the watercolour flat.* So the mask is a **feather**,
+   not a cut: alpha is untouched inside 86% of the radius and falls to zero at
+   the rim on a `3t²-2t³` curve. A linear ramp leaves a visible ring where the
+   falloff begins; the smoothed curve does not.
 
 **WebP, not PNG.** Measured on the real artwork: 20 KB per icon versus 284 KB as
 PNG, for the same 400 px. All six total 121 KB. WebP with alpha is Safari 14+.
@@ -190,10 +198,10 @@ transform: translate(-50%, -50%)` pins the icon to the circle at every width, wi
 no per-breakpoint math and no JS measurement.
 
 **Size.** *(Revised: the first build sized off the banner's width and was too
-small to show the artwork off.)* `height: clamp(104px, 86%, 232px)` with
-`aspect-ratio: 440 / 371`. Measuring against the banner's **height** keeps the
-wash filling the same share of the artwork it sits in — about 217 px tall on
-desktop, reaching roughly the middle ring, and 105 px on a phone.
+small to show the artwork off.)* `height: clamp(104px, 84%, 224px)` with
+`aspect-ratio: 1`. Measuring against the banner's **height** keeps the disc
+filling the same share of the artwork it sits in — about 212 px across on
+desktop, sitting between the inner and middle rings, and 104 px on a phone.
 
 The aspect ratio must be explicit. An absolutely positioned box with `width:
 auto` and only `left` set is shrink-to-fit, and shrink-to-fit clamps it to the
