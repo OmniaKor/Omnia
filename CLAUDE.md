@@ -31,6 +31,13 @@ If a change needs a server to answer a request, it cannot ship on Pages. So:
 
 **Do not add a runtime Python dependency to `app/`.** It will 404 on Pages.
 
+**There is no API key anywhere in `app/`, and there should never be one.** Video
+import was designed twice: once around a model call with a user-supplied key,
+and then again as a parser that reads the pasted text locally. The second is
+better on every axis that matters here — it costs nothing, runs offline, needs
+no account, and cannot invent an exercise that was not in the text. Reach for
+plain parsing before reaching for an API.
+
 ## Buildless on purpose
 
 Tailwind 4 and DaisyUI 5 load from jsDelivr. There is **no `npm install`, no build
@@ -63,7 +70,8 @@ Omnia/
 │   ├── store.test.html           # the calendar colour rules
 │   ├── streak.test.html          # the consistency ladder
 │   ├── audio.test.html           # the audio contract, plus buttons for ears
-│   └── builder.test.html         # drives the real builder against a fixture
+│   ├── builder.test.html         # drives the real builder against a fixture
+│   └── importer.test.html        # link shapes + every bad model answer
 └── app/                          # ← what GitHub Pages serves
     ├── .nojekyll                 # belt and braces; see Gotchas
     ├── index.html                # the whole app — one page, hash-routed
@@ -83,6 +91,7 @@ Omnia/
             ├── catalog.js        # loads + indexes the JSON, resolves routines
             ├── routines.js       # list + preview
             ├── builder.js        # build/edit your own routine
+            ├── importer.js       # YouTube link → routine (Phase 8)
             ├── player.js         # the timer screen
             ├── timer.js          # the interval engine
             ├── audio.js          # every sound, plus haptics
@@ -207,6 +216,45 @@ These came from the product owner directly. Changing one is a product decision.
   repaint the calendar and erase days the user actually trained
 - The builder filters by toggling `hidden`, never by re-rendering. Re-rendering
   rebuilds every `<img>`, which flickers on each keystroke.
+- **The catalog stops at `PAGE` (8) rows behind "View N more".** All 43 are
+  still rendered once and revealed by flipping `hidden` — same reason as
+  filtering. Left whole, the list put "+ Add your own exercise" ~2,500px down
+  the page, which is exactly where someone lands once they have decided nothing
+  in the list is what they meant. Expanding is one-way for the rest of the
+  visit: folding it back up on the next keystroke reads as losing their place.
+
+**Video import** (Phase 8, `importer.js`)
+- **It parses pasted text. It does not fetch, and the UI must never imply it
+  does.** Two separate walls, both checked rather than assumed:
+  - A browser cannot read a YouTube page — no CORS headers, and the markup is
+    an empty shell whose description lives in a `<script>` JSON blob that any
+    HTML-to-text pass discards.
+  - Captions are shut by **policy**: `captions.download` needs OAuth from the
+    video's *owner*. Nothing will ever fetch a stranger's transcript. Don't go
+    looking for a clever way around this one; there isn't one.
+- The input is the description a creator already wrote:
+  `00:39 - Eagle Crunches`. **The exercises are the lines and the intervals are
+  the gaps between the timestamps** — that is the entire idea.
+- **A stated header beats the gaps.** `45s on, 15s off` means 60-second gaps,
+  and reading those as the exercise length would make every interval a quarter
+  too long.
+- Matching scores on how much of the *catalog* name is present, so a
+  description's extra adjectives don't count against it ("Slow Flutter Kicks"
+  → Flutter Kicks). At least one matched word must be **distinctive** —
+  without that rule "Low Plank Hold" lands on "Hollow Body Hold" on the
+  strength of the word "hold", which is a coincidence, not a match.
+- Anything with no honest match is kept as the user's own exercise, exactly as
+  the builder's "add your own" does. Nothing is silently dropped.
+- Imports land in the **builder**, never the player. The parser gets things
+  wrong and the screen that fixes them already exists.
+- **The routine is not named for you.** The first prose line of a description
+  was tried as a title and it is almost never one — it is "Workout", or the
+  channel's tagline. A guess in the name field looks decided, so it survives
+  into the routine list; the review screen asks instead, and only an untouched
+  field falls back to "Imported routine".
+- Detected per-exercise seconds are kept on `routine.source.detected` but are
+  **not played back** — the player runs one interval for the whole routine.
+  Wiring them up is the timed-break half of Phase 8.
 
 **Chrome**
 - Header: `Omnia` wordmark + hero image, with the tagline and version above it

@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Omnia — importer tests</title>
+<style>
+  body { font: 14px ui-monospace, monospace; padding: 1.5rem; line-height: 1.7; }
+  .pass::before { content: "PASS  "; color: #1f6a42; }
+  .fail::before { content: "FAIL  "; color: #8f2010; }
+  .fail { color: #8f2010; }
+  h1 { font: 600 16px ui-monospace, monospace; }
+  h2 { font: 600 13px ui-monospace, monospace; margin: 1.2rem 0 0.2rem; }
+  #summary { margin-top: 1rem; font-weight: 600; }
+</style>
+</head>
+<body>
+<h1>Description importer</h1>
+<div id="out"></div>
+<div id="summary">running…</div>
+
+<script type="module">
+/*
+  The importer reads text and nothing else — no key, no network — so all of it
+  is testable directly. The cases below are the description shapes people
+  actually write: dashes or no dashes, hours or not, a stated interval or only
+  timestamps, an intro line that is not an exercise.
+
+  Open tests/importer.test.html over http (not file://) to run.
+*/
+
+const results = [];
+const ok = (name, condition, detail = '') => results.push({ name, condition, detail });
+const group = (name) => results.push({ group: name });
+
+const { parseDescription, parseHeader, matchExercise, toRoutine, suggestedInterval, findUrl } =
+  await import('../app/assets/js/importer.js');
+
+// The real catalog, so matching is tested against what actually ships.
+const doc = await (await fetch('../app/assets/data/exercises.json')).json();
+const catalog = {
+  exercises: doc.exercises,
+  byId: new Map(doc.exercises.map((e) => [e.id, e])),
+};
+
+/* ── 1. The description from the brief ──────────────────────────────── */
+group('The worked example');
+{
+  const text = `Workout // 30s work, no rest
+00:09 - Full Extension Crunches
+00:39 - Eagle Crunches
+01:09 - Scissor Kicks
+01:39 - Cross Mountain Climbers
+02:09 - Windshield Wipers
+02:39 - Reach Through Crunches
+03:10 - Slow Flutter Kicks
+03:39 - Frog Crunches
+04:09 - Plank Hip Dips
+04:39 - Low Plank Hold.`;
+
+  const out = parseDescription(text, catalog);
+
+  ok('finds a routine', out.found === true);
+  ok('reads all ten exercises', out.items.length === 10, `got ${out.items.length}`);
+  // "Workout" is what the old guess-a-title pass returned here, and it is a
+  // fair sample of how useful that guess was.
+  ok('does not name the routine for you', out.name === undefined, String(out.name));
+  ok('reads "30s work" from the header', out.header.work === 30, JSON.stringify(out.header));
+  ok('reads "no rest" as zero', out.header.rest === 0, JSON.stringify(out.header));
+  ok('every exercise is 30s', out.items.every((i) => i.seconds === 30),
+     out.items.map((i) => i.seconds).join(','));
+  ok('the last line keeps a duration', out.items[9].seconds === 30,
+     `${out.items[9].seconds}`);
+  ok('strips the trailing full stop', out.items[9].name === 'Low Plank Hold',
+     JSON.stringify(out.items[9].name));
+  ok('suggests a 30s interval', suggestedInterval(out.items) === 30);
+
+  const named = (i) => `${out.items[i].name} → ${out.items[i].catalogId || '(yours)'}`;
+  const want = [
+    [2, 'Scissor_Kick'],                     // plural
+    [3, 'Mountain_Climbers'],                // extra leading word
+    [4, 'placeholder-windshield-wipers'],
+    [6, 'Flutter_Kicks'],                    // "Slow" ignored
+    [8, 'Plank'],
+    [9, 'Plank'],                            // "Low ... Hold" must not go to Hollow Body Hold
+  ];
+  for (const [i, id] of want) {
+    ok(`matches ${named(i)}`, out.items[i].catalogId === id, `got ${out.items[i].catalogId}`);
+  }
+  ok('crunch variants land on Crunches',
+     [0, 1, 5].every((i) => out.items[i].catalogId === 'Crunches'),
+     [0, 1, 5].map(named).join(' | '));
+
+  const routine = toRoutine(out, '', 'Ten minute abs');
+  ok('the routine takes the name you typed', routine.name === 'Ten minute abs',
+     routine.name);
+  ok('a blank name falls back rather than storing nothing',
+     toRoutine(out, '', '   ').name === 'Imported routine',
+     toRoutine(out, '', '   ').name);
+  ok('all ten reach the routine', routine.exercises.length === 10,
+     `${routine.exercises.length}`);
+  ok('unmatched ones become custom exercises',
+     routine.customExercises.length === routine.exercises.filter((id) => id.startsWith('own-')).length);
+  ok('the detected timing is kept', routine.source.detected.length === 10);
+}
+
+/* ── 2. Line shapes ─────────────────────────────────────────────────── */
+group('Line shapes');
+{
+  const text = `0:00 Intro
+0:30 Crunches
+1:00 – Plank
+1:30 — Superman
+2:00 | Russian Twist
+2:30: Dead Bug
+[3:00] Sit-Up
+1:02:00 Toe Touchers`;
+
+  const out = parseDescription(text, catalog);
+  const names = out.items.map((i) => i.name);
+
+  ok('drops the intro line', !names.includes('Intro'), names.join(', '));
+  ok('accepts every separator', out.items.length === 7, names.join(', '));
+  ok('handles an hour-long timestamp', out.items[6].name === 'Toe Touchers', names.join(', '));
+  ok('matches with no separator at all',
+     out.items[0].name === 'Crunches' && out.items[0].catalogId === 'Crunches');
+}
+
+/* ── 3. Intervals from the gaps, when the header is silent ──────────── */
+group('Intervals from gaps');
+{
+  const text = `My workout
+00:00 - Crunches
+00:45 - Plank
+01:30 - Superman
+02:15 - Sit-Up`;
+
+  const out = parseDescription(text, catalog);
+  ok('reads 45s from the gaps', out.items.slice(0, 3).every((i) => i.seconds === 45),
+     out.items.map((i) => i.seconds).join(','));
+  ok('the last line inherits the median', out.items[3].seconds === 45,
+     `${out.items[3].seconds}`);
+  ok('suggests a 45s interval', suggestedInterval(out.items) === 45);
+}
+
+/* ── 4. Rests ───────────────────────────────────────────────────────── */
+group('Rests');
+{
+  const text = `45s on 15s off
+00:00 - Crunches
+01:00 - Rest
+01:15 - Plank`;
+
+  const out = parseDescription(text, catalog);
+  ok('a rest line is not an exercise',
+     out.items[1].kind === 'rest' && out.items[0].kind === 'exercise',
+     out.items.map((i) => i.kind).join(','));
+  ok('the stated work length wins over the 60s gap',
+     out.items[0].seconds === 45, `${out.items[0].seconds}`);
+  ok('the rest takes the stated rest length', out.items[1].seconds === 15,
+     `${out.items[1].seconds}`);
+
+  const routine = toRoutine(out, '');
+  ok('rests are left out of the exercise list', routine.exercises.length === 2,
+     routine.exercises.join(','));
+}
+
+/* ── 5. Headers ─────────────────────────────────────────────────────── */
+group('Headers');
+{
+  const cases = [
+    ['30s work, no rest', 30, 0],
+    ['Workout // 45 seconds work, 15 seconds rest', 45, 15],
+    ['40s on / 20s off', 40, 20],
+    ['work: 30s rest: 10s', 30, 10],
+    ['just a normal description', null, null],
+  ];
+  let bad = [];
+  for (const [text, work, rest] of cases) {
+    const h = parseHeader(text);
+    if (h.work !== work || h.rest !== rest) {
+      bad.push(`"${text}" → ${JSON.stringify(h)} (want ${work}/${rest})`);
+    }
+  }
+  ok(`reads ${cases.length} header shapes`, bad.length === 0, bad.join('; '));
+
+  ok('a bare pair of numbers is not read as an interval',
+     parseHeader('filmed 16/9 in my garage').work === null,
+     JSON.stringify(parseHeader('filmed 16/9 in my garage')));
+}
+
+/* ── 6. Matching is careful about generic words ─────────────────────── */
+group('Matching');
+{
+  ok('"Low Plank Hold" is a Plank, not a Hollow Body Hold',
+     matchExercise('Low Plank Hold', catalog) === 'Plank',
+     matchExercise('Low Plank Hold', catalog));
+  ok('"Hollow Hold" still finds Hollow Body Hold',
+     matchExercise('Hollow Hold', catalog) === 'placeholder-hollow-body-hold',
+     matchExercise('Hollow Hold', catalog));
+  ok('an oblique crunch beats plain Crunches',
+     matchExercise('Oblique Crunches', catalog) === 'Oblique_Crunches',
+     matchExercise('Oblique Crunches', catalog));
+  ok('something not in the catalog matches nothing',
+     matchExercise('Burpee Broad Jumps', catalog) === '',
+     matchExercise('Burpee Broad Jumps', catalog));
+  ok('a generic word alone is not a match',
+     matchExercise('Hold', catalog) === '', matchExercise('Hold', catalog));
+  ok('an empty name is not a match', matchExercise('', catalog) === '');
+}
+
+/* ── 7. Things that are not a routine ───────────────────────────────── */
+group('Not a routine');
+{
+  const link = parseDescription('https://www.youtube.com/watch?v=6UWcaE8rR68', catalog);
+  ok('a bare link finds nothing', link.found === false);
+
+  const prose = parseDescription('Subscribe for more workouts! Filmed in my garage.', catalog);
+  ok('prose finds nothing', prose.found === false);
+
+  const onlyJunk = parseDescription('0:00 Intro\n0:05 Subscribe', catalog);
+  ok('a description of only non-exercises finds nothing', onlyJunk.found === false,
+     JSON.stringify(onlyJunk.items));
+}
+
+/* ── 8. Provenance ──────────────────────────────────────────────────── */
+group('Provenance');
+{
+  const text = 'Full video: https://youtu.be/6UWcaE8rR68\n0:00 - Crunches\n0:30 - Plank';
+  ok('finds the link inside the description',
+     findUrl(text) === 'https://youtu.be/6UWcaE8rR68', findUrl(text));
+  ok('finds a watch link too',
+     findUrl('see https://www.youtube.com/watch?v=6UWcaE8rR68&t=3s here')
+       .startsWith('https://www.youtube.com/watch?v=6UWcaE8rR68'));
+  ok('no link is an empty string, not undefined', findUrl('no link here') === '');
+
+  const out = parseDescription(text, catalog);
+  const routine = toRoutine(out, findUrl(text));
+  ok('the routine points back at the video',
+     routine.source.url === 'https://youtu.be/6UWcaE8rR68' && routine.source.kind === 'youtube',
+     JSON.stringify(routine.source.url));
+}
+
+/* ── 9. Out-of-order timestamps ─────────────────────────────────────── */
+group('Robustness');
+{
+  const out = parseDescription('1:00 - Plank\n0:30 - Crunches\n1:30 - Superman', catalog);
+  ok('lines are sorted by time before intervals are worked out',
+     out.items.map((i) => i.name).join(',') === 'Crunches,Plank,Superman',
+     out.items.map((i) => i.name).join(','));
+  ok('no negative interval survives', out.items.every((i) => i.seconds >= 0),
+     out.items.map((i) => i.seconds).join(','));
+}
+
+/* ── Report ─────────────────────────────────────────────────────────── */
+const out = document.getElementById('out');
+out.innerHTML = results.map((r) => r.group
+  ? `<h2>${r.group}</h2>`
+  : `<div class="${r.condition ? 'pass' : 'fail'}">${r.name}${r.condition || !r.detail ? '' : ` — ${r.detail}`}</div>`
+).join('');
+
+const assertions = results.filter((r) => !r.group);
+const failed = assertions.filter((r) => !r.condition).length;
+document.getElementById('summary').textContent = failed
+  ? `${failed} FAILED of ${assertions.length}`
+  : `ALL PASS — ${assertions.length} assertions`;
+</script>
+</body>
+</html>

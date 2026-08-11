@@ -260,6 +260,61 @@ ok('your own exercise is flagged as a placeholder',
      store.dayStatus(store.localDate()) === 'green', store.dayStatus(store.localDate()));
 }
 
+/* ── The long list ──────────────────────────────────────────────────── */
+
+/* The shipped catalog is 43 rows, which put "+ Add your own exercise" a screen
+   and a half below the fold. Rows past the cap are hidden, never un-rendered —
+   same reason as filtering. Needs more rows than the fixture above, so this
+   block brings its own catalog. */
+{
+  const many = Array.from({ length: 20 }, (_, i) => ({
+    id: `Ex_${i}`,
+    name: `Exercise ${i}`,
+    level: i % 2 ? 'beginner' : 'expert',
+    primary: ['abs'],
+    images: [], instructions: [], placeholder: true,
+    search: `exercise ${i} ${i % 2 ? 'beginner' : 'expert'} abs`,
+  }));
+  const big = { exercises: many, byId: new Map(many.map((e) => [e.id, e])), builtin: [] };
+
+  renderBuilder(view, big, null);
+  const more = $('#show-more');
+  const count = () => $('#result-count').textContent.trim();
+
+  ok('every row is rendered, even past the fold', rows().length === 20, `${rows().length}`);
+  ok('only a page is shown', visible().length === 8, `${visible().length}`);
+  ok('the button counts what is left', more.textContent.trim() === 'View 12 more',
+     more.textContent);
+  ok('the count says how much of the list is on screen', count() === '8 of 20 shown', count());
+
+  type($('#search'), 'exercise 19');
+  ok('a short result list needs no button',
+     visible().length === 1 && more.hidden === true, `${visible().length}`);
+
+  type($('#search'), '');
+  ok('clearing search brings the fold back',
+     visible().length === 8 && more.hidden === false, `${visible().length}`);
+
+  const firstRow = rows()[0];
+  more.click();
+
+  ok('viewing more shows the rest', visible().length === 20, `${visible().length}`);
+  ok('expanding reuses the same nodes, so nothing flickers', rows()[0] === firstRow);
+  ok('the button goes once there is nothing behind it', more.hidden === true);
+  ok('the count drops the fraction', count() === '20 shown', count());
+
+  /* Expanding is a decision, not a mode. A later keystroke must not fold the
+     list back up under someone who already asked to see all of it. */
+  type($('#search'), 'exercise 1');
+  ok('search still filters after expanding', visible().length === 11, `${visible().length}`);
+  ok('and the list does not re-collapse', more.hidden === true);
+
+  type($('#search'), '');
+  ok('picking still works past the old fold',
+     (rows().find((r) => r.dataset.add === 'Ex_15').click(), picked().length === 1),
+     picked().join(','));
+}
+
 /* ── Report ─────────────────────────────────────────────────────────── */
 
 localStorage.removeItem('omnia.v1');

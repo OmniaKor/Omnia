@@ -9,6 +9,8 @@
  *   #/routines/:id        one routine's preview
  *   #/play/:id            the timer
  *   #/calendar            the month grid
+ *   #/build[/:id]         the routine builder
+ *   #/import              build a routine from a YouTube link
  */
 
 import { loadCatalog, getRoutine, allRoutines } from './catalog.js';
@@ -16,6 +18,7 @@ import { renderList, renderPreview } from './routines.js';
 import { renderPlayer, teardown } from './player.js';
 import { renderCalendar } from './calendar.js';
 import { renderBuilder } from './builder.js';
+import { renderImport } from './importer.js';
 import { mountRank, refreshRank } from './rank.js';
 import { getPrefs, setPrefs } from './store.js';
 import { audio } from './audio.js';
@@ -53,6 +56,8 @@ function route() {
       renderCalendar(view, { routines });
     } else if (section === 'build') {
       renderBuilder(view, catalog, id);
+    } else if (section === 'import') {
+      renderImport(view, catalog);
     } else if (section === 'play' && id) {
       const routine = getRoutine(routines, id);
       routine ? renderPlayer(view, routine) : notFound();

@@ -32,6 +32,7 @@ const SHELL = [
   './assets/js/builder.js',
   './assets/js/calendar.js',
   './assets/js/catalog.js',
+  './assets/js/importer.js',
   './assets/js/player.js',
   './assets/js/rank.js',
   './assets/js/routines.js',

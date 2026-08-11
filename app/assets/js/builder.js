@@ -18,6 +18,16 @@ import { deleteCustomRoutine, getCustomRoutine, saveCustomRoutine } from './stor
 import { audio } from './audio.js';
 import { announce, esc, exerciseImage } from './ui.js';
 
+/**
+ * How many catalog rows to show before "View N more".
+ *
+ * The catalog is 43 movements and every one is a thumbnail row, so left whole
+ * it buries "+ Add your own exercise" under a screen and a half of scrolling —
+ * which is exactly where someone lands once they have decided nothing in the
+ * list is the movement they meant. Eight is about a phone screen.
+ */
+const PAGE = 8;
+
 /** Working copy. Never written to storage until Save. */
 let draft = null;
 
@@ -31,6 +41,7 @@ export function renderBuilder(view, catalog, routineId) {
     search: view.querySelector('#search'),
     clear: view.querySelector('#search-clear'),
     rows: view.querySelector('#catalog-rows'),
+    more: view.querySelector('#show-more'),
     empty: view.querySelector('#catalog-empty'),
     picked: view.querySelector('#picked'),
     summary: view.querySelector('#summary'),
@@ -50,9 +61,14 @@ export function renderBuilder(view, catalog, routineId) {
 
   let level = 'all';
 
+  /* Set by "View N more" and never unset. Once someone has asked to see the
+     whole list, collapsing it again behind their back — on the next keystroke,
+     say — reads as the page losing their place. */
+  let expanded = false;
+
   const applyFilter = () => {
     const query = els.search.value.trim().toLowerCase();
-    let shown = 0;
+    let matched = 0;
 
     for (const exercise of catalog.exercises) {
       const row = rowsById.get(exercise.id);
@@ -62,19 +78,37 @@ export function renderBuilder(view, catalog, routineId) {
         (query === '' || exercise.search.includes(query)) &&
         (level === 'all' || exercise.level === level);
 
-      row.hidden = !matches;
-      if (matches) shown += 1;
+      if (matches) matched += 1;
+      // Count first, then cap. A row past the fold is still a match; it is
+      // hidden for room, not because it failed the filter.
+      row.hidden = !matches || (!expanded && matched > PAGE);
     }
 
-    els.empty.hidden = shown > 0;
-    els.count.textContent = `${shown}`;
+    const shown = expanded ? matched : Math.min(matched, PAGE);
+    const rest = matched - shown;
+
+    els.empty.hidden = matched > 0;
+    els.more.hidden = rest === 0;
+    els.more.textContent = `View ${rest} more`;
+    els.count.textContent = rest === 0
+      ? `${matched} shown`
+      : `${shown} of ${matched} shown`;
     els.clear.hidden = els.search.value === '';
+
+    return matched;
   };
 
   // No debounce: filtering is a single pass over a few dozen records and a
   // boolean attribute flip. Deferring it would only add latency to the one
   // interaction that must feel instant.
   els.search.addEventListener('input', applyFilter);
+
+  els.more.addEventListener('click', () => {
+    expanded = true;
+    // Same as filtering: rows are revealed by flipping `hidden`, so the
+    // thumbnails already on screen are never rebuilt and never flicker.
+    announce(`Showing all ${applyFilter()} exercises`);
+  });
 
   els.clear.addEventListener('click', () => {
     els.search.value = '';
@@ -349,8 +383,8 @@ function shell(state, catalog) {
           </div>
         </div>
 
-        <p class="type-quiet build-count">
-          <span id="result-count">${catalog.exercises.length}</span> shown
+        <p class="type-quiet build-count" id="result-count">
+          ${catalog.exercises.length} shown
         </p>
 
         <ul class="ex-list" id="catalog-rows">
@@ -368,6 +402,9 @@ function shell(state, catalog) {
             </li>
           `).join('')}
         </ul>
+
+        <button class="btn-omnia btn-ghost build-more" type="button" id="show-more"
+                hidden></button>
 
         <p class="type-quiet" id="catalog-empty" hidden>
           No exercise matches. Add your own instead.
