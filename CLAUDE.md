@@ -57,14 +57,18 @@ but do not do it just because it is more correct.
 ```
 Omnia/
 ├── CLAUDE.md, ROADMAP.md, README.md
-├── requirements.txt              # build-time only (requests)
+├── requirements.txt              # build-time only (Pillow)
 ├── .github/workflows/pages.yml   # uploads app/ to Pages; compiles nothing
+├── art/
+│   └── streak-source.png         # rank artwork source. NOT served — see below
 ├── tools/
-│   └── build_catalog.py          # regenerates the exercise catalog
+│   ├── build_catalog.py          # regenerates the exercise catalog
+│   └── slice_streak_icons.py     # regenerates the rank icons
 ├── serve.py                      # dev server. NOT a backend — see below
 ├── tests/                        # open in a browser over http; not published
 │   ├── timer.test.html           # the interval rules
 │   ├── store.test.html           # the calendar colour rules
+│   ├── streak.test.html          # the consistency ladder
 │   ├── audio.test.html           # the audio contract, plus buttons for ears
 │   ├── builder.test.html         # drives the real builder against a fixture
 │   └── importer.test.html        # link shapes + every bad model answer
@@ -79,8 +83,11 @@ Omnia/
         │   ├── exercises.json    # GENERATED — do not hand-edit
         │   └── routines.json     # hand-written; routine → exercise ids
         ├── img/                  # hero + placeholder art (SVG)
+        │   └── streak/           # s a b c d f .webp — GENERATED
         └── js/
             ├── store.js          # localStorage; the only thing that persists
+            ├── streak.js         # sessions → a rank. Pure: no DOM, no clock.
+            ├── rank.js           # the masthead consistency badge
             ├── catalog.js        # loads + indexes the JSON, resolves routines
             ├── routines.js       # list + preview
             ├── builder.js        # build/edit your own routine
@@ -163,6 +170,24 @@ These came from the product owner directly. Changing one is a product decision.
 
 **Completion**
 - Recorded **once per routine**, never per exercise
+
+**Consistency rank** (the masthead badge)
+- Six ranks, drawn as planets: **S A B C D F**. The letters are *in the
+  artwork*; the app never prints one as text.
+- Climbing is earned by streak, falling is measured by absence. A finish
+  **today or yesterday** keeps the streak alive — today being unfinished must
+  not demote anyone at 9am.
+- Only `completed` counts, folded by `localDate` — **the same fold the calendar
+  does.** A second streak counter that can disagree with the squares is a bug
+  generator; `calendar.js` reads `streak.js` for exactly this reason.
+- Day gaps use `Math.round`, never truncation. A local day is 23 or 25 hours
+  across a DST change, and truncating fuses two days into one every spring.
+- **No history yet shows a desaturated B.** The first finished routine snaps it
+  to full colour; without that, the first workout moves nothing in the masthead.
+- Sad, never punishing. Nothing burns down, no calendar square is ever
+  repainted, and it never nags off-screen.
+- It can be hidden, and hiding leaves the streak numbers intact. The way back
+  is on the calendar screen.
 
 **Duration estimate**
 - Always shown as a range, **floored at 5 min, capped at 15 min**. Two reasons, both
@@ -356,17 +381,34 @@ copy rather than a translation.
 
 ## Common tasks
 
-**Run locally** — any static server; there is no build.
+**Run locally** — use `serve.py`, not `python -m http.server`.
 ```bash
-python -m http.server 8000 --directory app
-# → http://localhost:8000
+python serve.py                        # → http://localhost:8000
 ```
+Both serve files, but `serve.py` sends `Cache-Control: no-store`. Plain
+`http.server` sends `Last-Modified` and no cache headers, so the browser applies
+*heuristic* freshness — often tens of minutes — and serves your old JS back to
+you after an edit. The service worker is network-first and does not save you:
+the stale copy comes from the HTTP cache before the worker ever sees it. This
+looks exactly like a bug in the code you just wrote.
 
 **Regenerate the exercise catalog** (only after editing the curation lists or the pin):
 ```bash
 pip install -r requirements.txt
 python tools/build_catalog.py          # writes app/assets/data/exercises.json
 ```
+
+**Regenerate the rank icons** (only after redrawing `art/streak-source.png`):
+```bash
+pip install -r requirements.txt
+python tools/slice_streak_icons.py           # writes app/assets/img/streak/
+python tools/slice_streak_icons.py --check   # verify the committed output
+```
+Two passes, and both matter. The paper is keyed out by flood-filling inwards
+from the tile border on a *ramp*, not a threshold — thresholding gives every
+planet a hard cut where the paint fades out. Then the rim is feathered to a
+disc, because `hero.svg` draws concentric rings there and a rectangle among
+them looks pasted on. The feather is what keeps the disc from looking stamped.
 
 **Add a routine** — edit `app/assets/data/routines.json`. Exercise ids must exist in
 `exercises.json`; the build script prints every valid id with `--list`.

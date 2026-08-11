@@ -12,7 +12,10 @@
  * nothing, and it buries the streak they do have.
  */
 
-import { dayStatus, firstActiveDate, localDate, sessionsOn } from './store.js';
+import { allSessions, dayStatus, firstActiveDate, getPrefs, localDate,
+         sessionsOn, setPrefs } from './store.js';
+import { streakState } from './streak.js';
+import { refreshRank } from './rank.js';
 import { esc, prettyDate } from './ui.js';
 
 const DOW = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
@@ -44,6 +47,11 @@ export function renderCalendar(view, { routines }) {
       <div class="section-head">
         <h2 class="type-display">Calendar</h2>
         <p class="type-label">${streakLabel()}</p>
+        ${getPrefs().streakIcon === false
+          ? `<p class="type-quiet" style="margin:0.35rem 0 0">
+               <button class="rank__hide" type="button" id="rank-show">Show consistency rank</button>
+             </p>`
+          : ''}
       </div>
 
       <div class="cal-layout">
@@ -85,6 +93,14 @@ export function renderCalendar(view, { routines }) {
     view.querySelector('#next').addEventListener('click', () => {
       cursor = new Date(year, month + 1, 1);
       draw();
+    });
+
+    // Optional chaining because the link is only in the markup while the
+    // badge is hidden.
+    view.querySelector('#rank-show')?.addEventListener('click', () => {
+      setPrefs({ streakIcon: true });
+      refreshRank();
+      draw();          // redraw to drop the link now the badge is back
     });
 
     view.querySelectorAll('[data-date]').forEach((cell) => {
@@ -153,19 +169,13 @@ function showDetail(node, dateKey, names) {
   `;
 }
 
-/** Consecutive days ending today (or yesterday) with a finished routine. */
+/**
+ * Consecutive days ending today (or yesterday) with a finished routine.
+ *
+ * The walk lives in streak.js, which the masthead badge reads too. Two counts
+ * of the same thing is one count that can disagree with the squares.
+ */
 function streakLabel() {
-  let streak = 0;
-  const day = new Date();
-
-  // Today not being green yet shouldn't read as a broken streak at 9am, so
-  // start counting from yesterday when today is still empty.
-  if (dayStatus(localDate(day)) !== 'green') day.setDate(day.getDate() - 1);
-
-  while (dayStatus(localDate(day)) === 'green') {
-    streak += 1;
-    day.setDate(day.getDate() - 1);
-  }
-
+  const { streak } = streakState(allSessions(), localDate());
   return streak === 0 ? 'No streak yet' : `${streak} day streak`;
 }

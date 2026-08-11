@@ -13,3 +13,6 @@ desktop.ini
 
 # Notes
 *.local.md
+
+# Browser-automation scratch (Playwright MCP)
+.playwright-mcp/

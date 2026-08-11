@@ -228,7 +228,10 @@ button, .rail__link, .tabbar__link, .routine-card, .cal__day {
   border-bottom: 1px solid color-mix(in srgb, var(--color-base-content) 12%, transparent);
   padding: 0.9rem 0;
 }
-.hero img {
+/* `.hero__frame > img` and not `.hero img`: the rank badge is also an <img>
+   inside .hero, and must inherit neither the cover crop nor the dark-mode
+   knock-back below — the latter would fight the unranked filter. */
+.hero__frame > img {
   width: 100%;
   max-height: 28vh;
   object-fit: cover;
@@ -238,7 +241,76 @@ button, .rail__link, .tabbar__link, .routine-card, .cal__day {
 /* The artwork carries its own cream ground, which lands as a slab of light on
    a near-black page. Knocking it back keeps it part of the page rather than a
    window cut into it. */
-[data-theme="omnia-dark"] .hero img { filter: brightness(0.8) saturate(0.9); }
+[data-theme="omnia-dark"] .hero__frame > img { filter: brightness(0.8) saturate(0.9); }
+
+.hero__frame { position: relative; display: block; }
+
+/*
+  hero.svg centres its rings at (900, 210) of a 1200x420 viewBox — 75% across,
+  50% down. The image is 2.857:1, wider than any box this layout produces, so
+  object-fit: cover can only ever crop it vertically, and symmetrically. Both
+  fractions therefore survive at every width, and the badge needs no
+  measurement and no per-breakpoint math.
+*/
+.rank {
+  position: absolute;
+  left: 75%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  /* Measured against the banner's *height*, not its width, so the wash always
+     fills the same share of the artwork it sits in — about 217px tall on
+     desktop and reaching roughly the middle ring. The 104px floor is for
+     phones, where the proportional size would be too small for the faces to
+     read; the ceiling stops it outgrowing the banner on a tall window.
+     Width follows the image, because these are irregular washes and forcing
+     a common aspect ratio would visibly squash them. */
+  height: clamp(104px, 84%, 224px);
+  /* Explicit, not shrink-to-fit. An absolutely positioned box with `width:
+     auto` and only `left` set is clamped to the space remaining on that side
+     — 25% of the banner — which is narrower than the artwork and leaves the
+     image overflowing its own button. */
+  aspect-ratio: 1;
+  width: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  border-radius: 50%;
+  cursor: pointer;
+  line-height: 0;
+}
+.rank__art { width: 100%; height: 100%; display: block; }
+
+.rank:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 3px;
+}
+
+/* No finished routine yet: the same B planet, drained. The first completed
+   routine snaps it to full colour — without this, no-history and a one-day
+   streak are both B and the first workout moves nothing in the masthead. */
+.rank.is-unranked .rank__art { filter: saturate(0.45) opacity(0.7); }
+
+.rank__detail {
+  margin: 0.6rem 0 0;
+  text-align: center;
+  color: var(--color-secondary);
+  font-size: 0.82rem;
+}
+.rank__hide {
+  background: none; border: 0; padding: 0 0 0 0.15rem;
+  color: inherit; font: inherit; text-decoration: underline; cursor: pointer;
+}
+
+/* The rank changes at most once a day, so the only motion is the new planet
+   arriving. Suppressed entirely under reduced motion — the rank still
+   changes, it just does not move. */
+@media (prefers-reduced-motion: no-preference) {
+  .rank__art.is-new { animation: rank-in 260ms ease-out; }
+}
+@keyframes rank-in {
+  from { opacity: 0; transform: scale(0.94); }
+  to   { opacity: 1; transform: none; }
+}
 
 .app-body {
   flex: 1 1 auto;

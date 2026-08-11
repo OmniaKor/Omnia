@@ -1,10 +1,14 @@
 # Build-time only. Nothing here is shipped to the browser or needed to deploy —
 # GitHub Pages serves app/ as static files. See CLAUDE.md.
 #
-# tools/build_catalog.py uses urllib from the standard library, so this file is
-# currently empty of hard requirements. It exists so `pip install -r` is always
-# the right first step, and so Phase 8's Flask deps have somewhere to land.
+# tools/build_catalog.py uses urllib from the standard library and needs
+# nothing here.
 #
+# tools/slice_streak_icons.py slices the consistency-rank artwork. Build time
+# only — the six WebP files it writes are committed, and the browser only ever
+# sees those.
+Pillow>=10.0
+
 # Phase 8 (optional self-hosted API) will add:
 #   Flask>=3.0
 #   SQLAlchemy>=2.0
